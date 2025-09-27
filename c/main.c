@@ -100,6 +100,8 @@ int main(int argc, char* argv[]) {
     // Seleciona o método de multiplicação
     if (strcmp(method, "sequencial") == 0) {
         dgemm_sequencial(A, B, C, n, k, m);
+    } else if (strcmp(method, "sequencial_opt") == 0) {
+        dgemm_sequencial_opt(A, B, C, n, k, m);
     } else if (strcmp(method, "parallel") == 0) {
         omp_set_num_threads(num_threads);
 
