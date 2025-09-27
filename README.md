@@ -25,7 +25,8 @@ Este repositório contém uma implementação de multiplicação de matrizes (DG
 
 ## Como Usar
 
-> [!NOTE] Todos os script foram feitos e testados em um ambiente Linux. Pode ser necessário fazer ajustes para rodar em outros sistemas operacionais.
+> [!NOTE] 
+> Todos os script foram feitos e testados em um ambiente Linux. Pode ser necessário fazer ajustes para rodar em outros sistemas operacionais.
 
 ### Gerando Matrizes de Teste
 
