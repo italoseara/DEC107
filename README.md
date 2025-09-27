@@ -76,7 +76,7 @@ Este repositório contém uma implementação de multiplicação de matrizes (DG
 1. Execute o programa com as matrizes geradas:
 
    ```bash
-   ./dgemm <arquivo_A> <arquivo_B> <implementação>
+   ./main <arquivo_A> <arquivo_B> <implementação>
    ```
 
    Onde `<implementação>` pode ser:
@@ -89,7 +89,7 @@ Este repositório contém uma implementação de multiplicação de matrizes (DG
    Exemplo:
 
    ```bash
-   ./dgemm A.txt B.txt parallel_opt
+   ./main A.txt B.txt parallel_opt
    ```
 
    O resultado será o tempo de execução da multiplicação de matrizes.
