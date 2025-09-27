@@ -59,7 +59,7 @@ def parse_sizes_arg(sizes_arg: str) -> list[int]:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Benchmark DGEMM executável para vários tamanhos de matriz.")
     parser.add_argument('--exe', required=True, help='Caminho do executável (ex: ./dgemm_seq)')
-    parser.add_argument('--method', type=str, default='sequencial', choices=['sequencial', 'parallel', 'parallel_opt'], help='Método de multiplicação (default: sequencial)')
+    parser.add_argument('--method', type=str, default='sequencial', choices=['sequencial', 'sequencial_opt', 'parallel', 'parallel_opt'], help='Método de multiplicação (default: sequencial)')
     parser.add_argument('--threads', type=int, default=1, help='Número de threads (apenas para métodos paralelos)')
     parser.add_argument('--sizes', type=str, default=None, help='Tamanhos separados por vírgula, ex: "128,256,512"')
     parser.add_argument('--reps', type=int, default=5, help='Repetições por tamanho (default 5)')
@@ -85,7 +85,7 @@ def main() -> None:
     print("Iniciando benchmark")
     print(f"Executável: {args.exe}")
     print(f"Método: {args.method}")
-    if args.method != 'sequencial':
+    if args.method not in ['sequencial', 'sequencial_opt']:
         os.environ['OMP_NUM_THREADS'] = str(args.threads)
         print(f"Número de threads: {args.threads}")
     print(f"Tamanhos: {sizes}")

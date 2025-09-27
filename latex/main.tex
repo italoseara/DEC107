@@ -138,10 +138,19 @@ tabsize=2 % Tamanho do tab
 	\newpage
 	\section{Metodologia}
 
-	\subsection{Implementação sequencial}
+	Nesta seção, detalharemos a abordagem adotada para implementar e avaliar as versões
+	sequencial e paralela da multiplicação de matrizes DGEMM. Descreveremos
+	os detalhes da implementação, o ambiente de teste, as métricas utilizadas para
+	a avaliação de desempenho e o procedimento experimental.
 
-	A função de multiplicação matricial sequencial implementada foi o clássico
-	três loops aninhados, da seguinte forma:
+	\subsection{Primeira implementação: versão sequencial}
+
+	Inicialmente, uma implementação sequencial da multiplicação de matrizes foi
+	o clássico algoritmo de três loops aninhados. A função \texttt{dgemm\_sequencial} recebe
+	como parâmetros os ponteiros para as matrizes $A$, $B$ e $C$, bem como suas
+	dimensões $n$, $k$ e $m$. A matriz $A$ tem dimensões $n \times k$, a matriz $B$ tem
+	dimensões $k \times m$, e a matriz $C$ tem dimensões $n \imes m$. A função calcula o produto
+	das matrizes $A$ e $B$, armazenando o resultado na matriz $C$. O código da função é apresentado a seguir:
 
 	\begin{lstlisting}[language=C]
 		void dgemm_sequencial(const double* A, const double* B, 
@@ -172,55 +181,64 @@ tabsize=2 % Tamanho do tab
 
 		\item $p$ é o índice da somatória, variando de $0$ a $k-1$.
 	\end{itemize}
-	Complexidade
 
-	Tempo O(n * k * m) (cúbico no caso quadrado). Espaço O(n*m) para C.
+	\subsection{Segunda implementação: versão paralela com OpenMP}
 
-	\subsection{Implementação paralela}
-	
-    Inicialmente, a implementação paralela foi feita utilizando a diretiva \texttt{\#pragma omp parallel for}
-    para paralelizar o loop externo que itera sobre as linhas da matriz A. Isso
-    permite que diferentes threads processem diferentes linhas de A simultaneamente,
-    calculando as linhas correspondentes de C em paralelo. A diretiva \texttt{\#pragma omp barrier}
-    foi utilizada para garantir que todas as threads terminassem a computação de suas
-    linhas antes de prosseguir, assegurando a integridade dos dados.
+	A versão paralela da multiplicação de matrizes foi implementada utilizando
+	diretivas OpenMP para paralelizar os loops externos da função \texttt{dgemm\_paralela}.
+	A diretiva \texttt{\#pragma omp parallel} cria uma região paralela onde múltiplas threads são
+	criadas para executar o código dentro do bloco. A diretiva \texttt{\#pragma omp for} distribui 
+	as iterações do loop entre as threads disponíveis. A diretiva \texttt{\#pragma omp barrier} garante que todas as threads
+	tenham concluído suas iterações antes de prosseguir, evitando condições de corrida. O código da função paralela 
+	é apresentado a seguir:
 
-    A função paralela ficou da seguinte forma:
+	\begin{lstlisting}[language=C]
+		void dgemm_paralela(const double* A, const double* B, 
+						  double* C, int n, int k, int m) {
+			#pragma omp parallel
+			{
+				#pragma omp for
+				for (int i = 0; i < n; ++i) {
+					for (int j = 0; j < m; ++j) {
+						double sum = 0.0;
+						for (int p = 0; p < k; ++p) {
+							sum += A[i * k + p] * B[p * m + j];
+						}
+						C[i * m + j] = sum;
+					}
+				}
 
-    \begin{lstlisting}[language=C]
-        void dgemm_paralela(const double* A, const double* B, 
-                            double* C, int n, int k, int m) {
-            #pragma omp parallel
-            {
-                #pragma omp for
-                for (int i = 0; i < n; ++i) {
-                    for (int j = 0; j < m; ++j) {
-                        double sum = 0.0;
-                        for (int p = 0; p < k; ++p) {
-                            sum += A[i * k + p] * B[p * m + j];
-                        }
-                        C[i * m + j] = sum;
-                    }
-                }
+				#pragma omp barrier
+			}
+		}
+	\end{lstlisting}
 
-                #pragma omp barrier
-            }
-        }
-    \end{lstlisting}
-    
-    O ganho de desempenho esperado com essa paralelização é significativo, especialmente
-    para matrizes grandes, onde o trabalho pode ser distribuído eficientemente entre
-    múltiplos núcleos de processamento. No entanto, ainda é possível otimizar ainda mais
-    a implementação paralela, explorando técnicas como a divisão de blocos (blocking)
-    e a transposição da matriz B para melhorar a localidade de dados e reduzir o impacto 
-    da latência de memória.
+	Após a implementação, foram realizados testes para garantir que ambas as versões
+	(sequencial e paralela) produzem resultados corretos e idênticos para as mesmas
+	entradas. A validação foi feita comparando os elementos das matrizes resultantes
+	$C$ de ambas as versões, garantindo que a diferença entre os elementos correspondentes
+	estivesse dentro de uma tolerância aceitável para números de ponto flutuante.
 
-    A segunda versão paralela implementa essas otimizações, dividindo as matrizes em blocos menores
-    que cabem melhor na cache do processador, e transpondo a matriz B para melhorar o acesso
-    sequencial à memória. Essas técnicas ajudam a minimizar os acessos à memória principal, que são mais lentos, 
-    e a maximizar o uso da cache, que é muito mais rápida.
+	\subsection{Otimizações}
 
-    A função otimizada está anexa ao final do relatório.
+	Após a implementação inicial, foram exploradas otimizações para melhorar o desempenho
+	da versão paralela. As otimizações incluíram:
+	\begin{itemize}
+		\item \textbf{Transposição de matriz:} Transpor a matriz $B$ para melhorar a localidade de referência
+		durante a multiplicação, reduzindo falhas de cache.
+
+		\item \textbf{Blocking (tiling):} Dividir as matrizes em blocos menores para melhorar a localidade de dados
+		e reduzir o número de acessos à memória.
+
+		\item \textbf{Vetorização:} Utilizar instruções SIMD (Single Instruction, Multiple Data) para otimizar a operação
+		de multiplicação e soma dentro do loop mais interno.
+	\end{itemize}
+
+	Com isso, a versão paralela otimizada foi implementada e testada novamente para garantir
+	a correção dos resultados. Também fizemos uma versão sequencial otimizada para comparação.
+
+	A versão otimizada, paralela e sequencial, do código pode ser encontrada na pasta do projeto no arquivo \texttt{dgemm.c} junto
+	com as outras implementações
 
     \subsection{Descrição do hardware utilizado nos testes}
 
@@ -233,7 +251,7 @@ tabsize=2 % Tamanho do tab
     \end{itemize}
 
 	\subsection{Métricas utilizadas para avaliação}
-	Usaremos algumas métricas para definir e comparar ambas as implementações:
+	Usaremos as seguintes métricas para definir e comparar as implementações:
 
     \subsubsection{Tempo de Execução}
 
@@ -293,16 +311,99 @@ tabsize=2 % Tamanho do tab
         \item $T_{p}$ é o tempo de execução da versão paralela com $p$ processadores/threads.
 	\end{itemize}
 
+	\newpage
 	\section{Resultados}
 
-	\subsection{Tabelas e/ou gráficos com os tempos obtidos}
-	% Apresentar os resultados em tabelas e gráficos
+	\subsection{Sem otimizações}
 
-	\subsection{Cálculos de speedup e eficiência}
-	% Mostrar os cálculos de speedup e eficiência
+	Inicialmente, os testes foram realizados com a versão paralela sem otimizações. Foram testados 
+	tamanhos de matrizes quadradas de $512$ até $4096$ (incrementando de $512$ em $512$) e números
+	de threads variando de $1$ a $16$ (em potências de $2$).
 
-	\subsection{Observações sobre balanceamento de carga e escalabilidade}
-	% Comentários sobre o comportamento observado
+	\subsubsection{Tempo de execução}
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.8\textwidth]{img/execution-time.png}
+		\caption{Tempo de execução (sem otimizações)}
+		\label{fig:tempo_execucao}
+	\end{figure}
+
+	A Figura \ref{fig:tempo_execucao} mostra o tempo de execução das versões sequencial e paralela
+	(sem otimizações) para diferentes tamanhos de matrizes e números de threads. Observa-se que a versão paralela
+	tem um desempenho significativamente melhor, especialmente para matrizes maiores e com mais threads. A relação
+	entre o tempo de execução e o número de threads é notavel, tendo em vista que quando dobram-se o número de threads,
+	o tempo de execução quase reduz pela metade.
+
+	\subsubsection{Speedup}
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.8\textwidth]{img/speedup.png}
+		\caption{Speedup (sem otimizações)}
+		\label{fig:speedup}
+	\end{figure}
+
+	A Figura \ref{fig:speedup} apresenta o speedup alcançado pela versão paralela em relação à sequencial para diferentes
+	tamanhos de matrizes e números de threads. O speedup se mantém quase constante em relação ao tamanho da matriz, o que
+	já era esperado, mas aumenta quase linearmente com o número de threads, indicando uma boa escalabilidade da implementação paralela.
+
+	\subsubsection{Eficiência}
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.8\textwidth]{img/efficiency.png}
+		\caption{Eficiência (sem otimizações)}
+		\label{fig:eficiencia}
+	\end{figure}
+
+	A Figura \ref{fig:eficiencia} mostra a eficiência da versão paralela em relação ao número de threads e tamanhos de matrizes.
+	Observa-se que a eficiência diminui com o aumento do número de threads, o que é esperado devido à sobrecarga de gerenciamento de threads. No entanto, a eficiência se mantém relativamente alta (acima de 0.8) para até 8 threads, indicando que a paralelização é eficaz.
+
+	\subsection{Com otimizações}
+
+	Após implementar as otimizações, os testes foram repetidos com a versão paralela otimizada. Foram testados
+	os mesmos parametros utilizados anteriormente.
+
+	\subsubsection{Tempo de execução}
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.8\textwidth]{img/execution-time-opt.png}
+		\caption{Tempo de execução (com otimizações)}
+		\label{fig:tempo_execucao_otimizado}
+	\end{figure}
+
+	É possível observar na Figura \ref{fig:tempo_execucao_otimizado} que o tempo de execução da versão otimizada é
+	significativamente menor do que o da versão sem otimizações, especialmente para matrizes maiores. 
+	Fazendo com que o tempo de execução caia de mais de 400 segundos para menos de 35 segundos no o pior caso
+	em ambas as versões. O tempo de execução diminui ainda mais com o aumento do número de threads, chegando até
+	a cerca de 5 segundos para 16 threads em seu pior caso.
+
+	\subsubsection{Speedup}
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.8\textwidth]{img/speedup-opt.png}
+		\caption{Speedup (com otimizações)}
+		\label{fig:speedup_otimizado}
+	\end{figure}
+
+	Na Figura \ref{fig:speedup_otimizado}, o speedup da versão otimizada é visivelmente menor em relação à versão sem otimizações.
+	Isso se deve ao fato de que a versão sequencial otimizada também teve uma melhora significativa, reduzindo o ganho relativo da versão paralela.
+	No entanto, o speedup ainda aumenta com o número de threads, indicando que a paralelização continua sendo eficaz.
+
+	\subsubsection{Eficiência}
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.8\textwidth]{img/efficiency-opt.png}
+		\caption{Eficiência (com otimizações)}
+		\label{fig:eficiencia_otimizado}
+	\end{figure}
+
+	A Figura \ref{fig:eficiencia_otimizado} mostra que a eficiência da versão otimizada também possui uma eficiência menor em relação à versão sem otimizações.
+	Isso é esperado, pois o speedup diminuiu. No entanto, a eficiência se mantém acima de 0.5 para até 8 threads, o que ainda é um resultado positivo, considerando as otimizações aplicadas.
 
 	\section{Discussão}
 
@@ -329,16 +430,12 @@ tabsize=2 % Tamanho do tab
 	\begin{thebibliography}{9}
 		\bibitem{latexcompanion} \textit{Orellana, E.}, \texttt{Materiais de slides vistos em aula}
 
-		\bibitem{latexcompanion} \textit{OPENMP}, \texttt{https://www.openmp.org/wp-content/uploads/OpenMP-RefGuide-6.0-OMP60SC24-web.pdf}
+		\bibitem{latexcompanion} \textit{OPENMP}, Disponível em: \texttt{https://www.openmp.org/wp-content/uploads/OpenMP-RefGuide-6.0-OMP60SC24-web.pdf}. Acesso em: 22 de Setembro de 2025.
 
-		\bibitem{latexcompanion} \textit{USP}, \texttt{https://www.ime.usp.br/~song/mac5710/slides/01complex.pdf}
+		\bibitem{knuthwebsite} Brasil Escola, Disponível em: \texttt{https://brasilescola.uol.com.br/matematica/multiplicacao-matrizes.htm}. Acesso em: 22 de Setembro de 2025.
 
-		\bibitem{knuthwebsite} Brasil Escola, \texttt{https://brasilescola.uol.com.br/matematica/multiplicacao-matrizes.htm}, 2023.
+		\bibitem{knuthwebsite} VSP-BERLIN, Disponível em: \texttt{https://svn.vsp.tu-berlin.de/repos/public-svn/publications/kn-old/strc/html/node9.html}. Acesso em: 23 de Setembro de 2025.
 
-		\bibitem{knuthwebsite} Lenovo Brasil, \texttt{https://www.lenovo.com/br/pt/glossary/parallelization/}, 2023.
-
-		\bibitem{knuthwebsite} UFRGS, \texttt{"https://books-sol.sbc.org.br/index.php/sbc/catalog/download/119/526/805-1"}, 2023.
-
-		\bibitem{knuthwebsite} VSP-BERLIN, \texttt{https://svn.vsp.tu-berlin.de/repos/public-svn/publications/kn-old/strc/html/node9.html}, 2023.
+		\bibitem{knuthwebsite} Wikipedia, Disponível em: \texttt{https://en.wikipedia.org/wiki/Loop\_nest\_optimization}. Acesso em: 23 de Setembro de 2025.
 	\end{thebibliography}
 \end{document}
