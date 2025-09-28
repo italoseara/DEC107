@@ -63,94 +63,36 @@ tabsize=2 % Tamanho do tab
 	\newpage
 	\section{Introdução}
 
-	O projeto tem como objetivo explorar a computação paralela em arquiteturas de memória
-	compartilhada, aplicando diretivas OpenMP para otimizar a multiplicação de
-	matrizes de precisão dupla (DGEMM) e analisar os ganhos de desempenho em
-	relação a uma implementação sequencial.
+	O projeto tem como objetivo explorar a computação paralela em arquiteturas de memória compartilhada, aplicando diretivas OpenMP para otimizar a multiplicação de matrizes de precisão dupla (DGEMM) e analisar os ganhos de desempenho em relação a uma implementação sequencial.
 
-	Como ponto inicial, o trabalho mergulha nos conceitos fundamentais do paralelismo,
-	utilizando a poderosa ferramenta do OpenMP para acelerar uma das operações
-	mais onipresentes na computação científica e na análise de dados: a multiplicação
-	de matrizes. Ao desenvolver e comparar duas versões de uma rotina de
-	multiplicação geral de matrizes de precisão dupla (DGEMM) (uma sequencial e outra
-	paralela), teremos uma comparação utilizando métricas para identificar suas
-	diferenças e eficiências.
+	Como ponto inicial, o trabalho mergulha nos conceitos fundamentais do paralelismo, utilizando a poderosa ferramenta do OpenMP para acelerar uma das operações mais onipresentes na computação científica e na análise de dados: a multiplicação de matrizes. Ao desenvolver e comparar duas versões de uma rotina de multiplicação geral de matrizes de precisão dupla (DGEMM) (uma sequencial e outra paralela), teremos uma comparação utilizando métricas para identificar suas diferenças e eficiências.
 
-	A multiplicação de matrizes está presente em áreas como aprendizado de máquina,
-	simulações físicas, bioinformática e processamento de imagens, onde a eficiência
-	computacional pode impactar diretamente a viabilidade de soluções em grande escala.
-	Dessa forma, ao explorar o uso de paralelismo com OpenMP, o trabalho não
-	apenas contribui para o entendimento acadêmico do tema, mas também aproxima a pesquisa
-	de cenários práticos onde o ganho de tempo de execução representa um diferencial
-	estratégico.
+	A multiplicação de matrizes está presente em áreas como aprendizado de máquina, simulações físicas, bioinformática e processamento de imagens, onde a eficiência computacional pode impactar diretamente a viabilidade de soluções em grande escala. Dessa forma, ao explorar o uso de paralelismo com OpenMP, o trabalho não apenas contribui para o entendimento acadêmico do tema, mas também aproxima a pesquisa de cenários práticos onde o ganho de tempo de execução representa um diferencial estratégico.
 
-	A multiplicação geral de matrizes (GEMM) é uma operação fundamental em álgebra
-	linear e computação científica. A variante DGEMM especifica que a operação é realizada
-	com números em ponto flutuante de precisão dupla (double precision). A
-	operação é definida como: a rotina \texttt{DGEMM} (Double-precision General Matrix
-	Multiplication) implementa uma operação mais genérica do que uma simples
-	multiplicação, dada por:
+	A multiplicação geral de matrizes (GEMM) é uma operação fundamental em álgebra linear e computação científica. A variante DGEMM especifica que a operação é realizada com números em ponto flutuante de precisão dupla (double precision). A operação é definida como: a rotina \texttt{DGEMM} (Double-precision General Matrix Multiplication) implementa uma operação mais genérica do que uma simples multiplicação, dada por:
 	\[
 		C = \alpha \cdot (A \cdot B) + \beta \cdot C
 	\]
-	onde $A$, $B$ e $C$ são as matrizes, e $\alpha$ e $\beta$ são escalares de precisão
-	dupla.
+	onde $A$, $B$ e $C$ são as matrizes, e $\alpha$ e $\beta$ são escalares de precisão dupla.
 
-	Esta operação é um pilar da especificação BLAS (Basic Linear Algebra
-	Subprograms), um conjunto de rotinas de baixo nível padronizadas para
-	operações de álgebra linear. As implementações de BLAS, como a Intel MKL e
-	OpenBLAS, são altamente otimizadas para arquiteturas de hardware específicas,
-	explorando cache, vetorização e paralelismo para alcançar o máximo de desempenho.
-	Neste projeto, a BLAS servirá apenas como uma referência de validação e comparação,
-	não será chamada diretamente no código implementado.
+	Esta operação é um pilar da especificação BLAS (Basic Linear Algebra Subprograms), um conjunto de rotinas de baixo nível padronizadas para operações de álgebra linear. As implementações de BLAS, como a Intel MKL e OpenBLAS, são altamente otimizadas para arquiteturas de hardware específicas, explorando cache, vetorização e paralelismo para alcançar o máximo de desempenho. Neste projeto, a BLAS servirá apenas como uma referência de validação e comparação, não será chamada diretamente no código implementado.
 
-	A computação paralela é um paradigma que divide um problema computacional em partes
-	menores que podem ser executadas simultaneamente por múltiplos processadores (ou
-	núcleos). Em sistemas de memória compartilhada, todas as unidades de processamento
-	(threads) têm acesso a um espaço de endereçamento de memória comum, o que
-	simplifica a comunicação e o compartilhamento de dados entre elas. O principal
-	desafio neste modelo é gerenciar o acesso concorrente a dados compartilhados para
-	evitar condições de corrida, onde o resultado da computação se torna incorreto
-	devido à ordem imprevisível de execução das threads.
+	A computação paralela é um paradigma que divide um problema computacional em partes menores que podem ser executadas simultaneamente por múltiplos processadores (ou núcleos). Em sistemas de memória compartilhada, todas as unidades de processamento (threads) têm acesso a um espaço de endereçamento de memória comum, o que simplifica a comunicação e o compartilhamento de dados entre elas. O principal desafio neste modelo é gerenciar o acesso concorrente a dados compartilhados para evitar condições de corrida, onde o resultado da computação se torna incorreto devido à ordem imprevisível de execução das threads.
 
-	OpenMP é uma API padrão para programação paralela em memória compartilhada.
-	Ela utiliza um modelo de execução fork-join, onde o programa inicia com uma única
-	thread (a master thread). Ao encontrar uma região paralela, a master thread bifurca-se
-	(fork), criando uma equipe de threads trabalhadoras que executam o código em
-	paralelo. Ao final da região, as threads sincronizam e terminam, e apenas a master
-	thread continua a execução (join).
+	OpenMP é uma API padrão para programação paralela em memória compartilhada. Ela utiliza um modelo de execução fork-join, onde o programa inicia com uma única thread (a master thread). Ao encontrar uma região paralela, a master thread bifurca-se (fork), criando uma equipe de threads trabalhadoras que executam o código em paralelo. Ao final da região, as threads sincronizam e terminam, e apenas a master thread continua a execução (join).
 
-	O OpenMP simplifica a paralelização de código sequencial existente através de diretivas
-	de compilador (pragmas), rotinas de biblioteca e variáveis de ambiente, permitindo
-	ao desenvolvedor especificar quais partes do código devem ser paralelizadas, com
-	controle sobre a distribuição de trabalho e a sincronização.
+	O OpenMP simplifica a paralelização de código sequencial existente através de diretivas de compilador (pragmas), rotinas de biblioteca e variáveis de ambiente, permitindo ao desenvolvedor especificar quais partes do código devem ser paralelizadas, com controle sobre a distribuição de trabalho e a sincronização.
 
-	A simples paralelização de um código não garante um ganho de velocidade. Fatores
-	como a sobrecarga de criação e gerenciamento de threads, a necessidade de
-	sincronização e o desbalanceamento de carga podem degradar o desempenho, tornando
-	a versão paralela mais lenta que a sequencial. Portanto, a análise de desempenho
-	é crucial para validar a eficácia da paralelização. Ela permite quantificar os
-	ganhos, entender os gargalos de escalabilidade e tomar decisões informadas sobre
-	as estratégias de otimização. Em computação de alto desempenho (HPC), essa análise
-	é fundamental para garantir o uso eficiente de recursos computacionais caros e
-	para resolver problemas complexos em tempo hábil.
+	A simples paralelização de um código não garante um ganho de velocidade. Fatores como a sobrecarga de criação e gerenciamento de threads, a necessidade de sincronização e o desbalanceamento de carga podem degradar o desempenho, tornando a versão paralela mais lenta que a sequencial. Portanto, a análise de desempenho é crucial para validar a eficácia da paralelização. Ela permite quantificar os ganhos, entender os gargalos de escalabilidade e tomar decisões informadas sobre as estratégias de otimização. Em computação de alto desempenho (HPC), essa análise é fundamental para garantir o uso eficiente de recursos computacionais caros e para resolver problemas complexos em tempo hábil.
 
 	\newpage
 	\section{Metodologia}
 
-	Nesta seção, detalharemos a abordagem adotada para implementar e avaliar as versões
-	sequencial e paralela da multiplicação de matrizes DGEMM. Descreveremos
-	os detalhes da implementação, o ambiente de teste, as métricas utilizadas para
-	a avaliação de desempenho e o procedimento experimental.
+	Nesta seção, detalharemos a abordagem adotada para implementar e avaliar as versões sequencial e paralela da multiplicação de matrizes DGEMM. Descreveremos os detalhes da implementação, o ambiente de teste, as métricas utilizadas para a avaliação de desempenho e o procedimento experimental.
 
 	\subsection{Primeira implementação: versão sequencial}
 
-	Inicialmente, uma implementação sequencial da multiplicação de matrizes foi
-	o clássico algoritmo de três loops aninhados. A função \texttt{dgemm\_sequencial} recebe
-	como parâmetros os ponteiros para as matrizes $A$, $B$ e $C$, bem como suas
-	dimensões $n$, $k$ e $m$. A matriz $A$ tem dimensões $n \times k$, a matriz $B$ tem
-	dimensões $k \times m$, e a matriz $C$ tem dimensões $n \imes m$. A função calcula o produto
-	das matrizes $A$ e $B$, armazenando o resultado na matriz $C$. O código da função é apresentado a seguir:
+	Inicialmente, uma implementação sequencial da multiplicação de matrizes foi o clássico algoritmo de três loops aninhados. A função \texttt{dgemm\_sequencial} recebe como parâmetros os ponteiros para as matrizes $A$, $B$ e $C$, bem como suas dimensões $n$, $k$ e $m$. A matriz $A$ tem dimensões $n \times k$, a matriz $B$ tem dimensões $k \times m$, e a matriz $C$ tem dimensões $n \imes m$. A função calcula o produto das matrizes $A$ e $B$, armazenando o resultado na matriz $C$. O código da função é apresentado a seguir:
 
 	\begin{lstlisting}[language=C]
 		void dgemm_sequencial(const double* A, const double* B, 
@@ -167,9 +109,7 @@ tabsize=2 % Tamanho do tab
         }
 	\end{lstlisting}
 
-	Cada elemento $C_{ij}$ da matriz $C$ é calculado pela soma dos produtos dos
-	elementos correspondentes da $i$-ésima linha de $A$ e da $j$-ésima coluna de
-	$B$. Isso é expresso pela seguinte somatória:
+	Cada elemento $C_{ij}$ da matriz $C$ é calculado pela soma dos produtos dos elementos correspondentes da $i$-ésima linha de $A$ e da $j$-ésima coluna de $B$. Isso é expresso pela seguinte somatória:
 	\[
 		C_{ij}= \sum_{p=0}^{k-1}A_{ip}\cdot B_{pj}
 	\]
@@ -184,13 +124,7 @@ tabsize=2 % Tamanho do tab
 
 	\subsection{Segunda implementação: versão paralela com OpenMP}
 
-	A versão paralela da multiplicação de matrizes foi implementada utilizando
-	diretivas OpenMP para paralelizar os loops externos da função \texttt{dgemm\_paralela}.
-	A diretiva \texttt{\#pragma omp parallel} cria uma região paralela onde múltiplas threads são
-	criadas para executar o código dentro do bloco. A diretiva \texttt{\#pragma omp for} distribui 
-	as iterações do loop entre as threads disponíveis. A diretiva \texttt{\#pragma omp barrier} garante que todas as threads
-	tenham concluído suas iterações antes de prosseguir, evitando condições de corrida. O código da função paralela 
-	é apresentado a seguir:
+	A versão paralela da multiplicação de matrizes foi implementada utilizando diretivas OpenMP para paralelizar os loops externos da função \texttt{dgemm\_paralela}. A diretiva \texttt{\#pragma omp parallel} cria uma região paralela onde múltiplas threads são criadas para executar o código dentro do bloco. A diretiva \texttt{\#pragma omp for} distribui as iterações do loop entre as threads disponíveis. A diretiva \texttt{\#pragma omp barrier} garante que todas as threads tenham concluído suas iterações antes de prosseguir, evitando condições de corrida. O código da função paralela é apresentado a seguir:
 
 	\begin{lstlisting}[language=C]
 		void dgemm_paralela(const double* A, const double* B, 
@@ -213,11 +147,7 @@ tabsize=2 % Tamanho do tab
 		}
 	\end{lstlisting}
 
-	Após a implementação, foram realizados testes para garantir que ambas as versões
-	(sequencial e paralela) produzem resultados corretos e idênticos para as mesmas
-	entradas. A validação foi feita comparando os elementos das matrizes resultantes
-	$C$ de ambas as versões, garantindo que a diferença entre os elementos correspondentes
-	estivesse dentro de uma tolerância aceitável para números de ponto flutuante.
+	Após a implementação, foram realizados testes para garantir que ambas as versões (sequencial e paralela) produzem resultados corretos e idênticos para as mesmas entradas. A validação foi feita comparando os elementos das matrizes resultantes $C$ de ambas as versões, garantindo que a diferença entre os elementos correspondentes estivesse dentro de uma tolerância aceitável para números de ponto flutuante.
 
 	\subsection{Otimizações}
 
@@ -234,20 +164,20 @@ tabsize=2 % Tamanho do tab
 		de multiplicação e soma dentro do loop mais interno.
 	\end{itemize}
 
-	Com isso, a versão paralela otimizada foi implementada e testada novamente para garantir
-	a correção dos resultados. Também fizemos uma versão sequencial otimizada para comparação.
+	Foram usadas as diretivas \texttt{\#pragma omp parallel for} para paralelizar os loops de transposição e inicialização da matriz $C$. Na multiplicação, utilizou-se \texttt{\#pragma omp parallel} com \texttt{\#pragma omp for collapse(2) schedule(static)} para distribuir as iterações dos dois loops externos entre as threads, combinando ambos em um único loop e dividindo o trabalho de forma estática. No loop mais interno, aplicou-se \texttt{\#pragma omp simd reduction(+:sum)} para vetorização e redução da variável \texttt{sum}, permitindo somas simultâneas e maior desempenho.
 
-	A versão otimizada, paralela e sequencial, do código pode ser encontrada na pasta do projeto no arquivo \texttt{dgemm.c} junto
-	com as outras implementações
+	Com isso, a versão paralela otimizada foi implementada e testada novamente para garantir a correção dos resultados. Também fizemos uma versão sequencial otimizada para comparação.
+
+	A versão otimizada, paralela e sequencial, do código pode ser encontrada na pasta do projeto no arquivo \texttt{dgemm.c} junto com as outras implementações
 
     \subsection{Descrição do hardware utilizado nos testes}
 
     Os testes foram realizados em uma máquina com as seguintes especificações:
     \begin{itemize}
-        \item Processador: Ryzen 7 5700G (8 núcleos, 16 threads)
-        \item Memória RAM: 32 GB
-        \item Sistema Operacional: Windows 11 + WSL 2.4.10.0 (Ubuntu 24.04.2 LTS)
-        \item Compilador: GCC 13.3.0
+        \item \textbf{Processador:} Ryzen 7 5700G (8 núcleos, 16 threads)
+        \item \textbf{Memória RAM:} 32 GB
+        \item \textbf{Sistema Operacional:} Windows 11 + WSL 2.4.10.0 (Ubuntu 24.04.2 LTS)
+        \item \textbf{Compilador:} GCC 13.3.0
     \end{itemize}
 
 	\subsection{Métricas utilizadas para avaliação}
@@ -255,9 +185,7 @@ tabsize=2 % Tamanho do tab
 
     \subsubsection{Tempo de Execução}
 
-    Medido em segundos, é o tempo total gasto para completar a multiplicação das matrizes.
-    Não inclui o tempo de inicialização ou finalização do programa, apenas o tempo gasto na
-    execução da função de multiplicação.
+    Medido em segundos, é o tempo total gasto para completar a multiplicação das matrizes. Não inclui o tempo de inicialização ou finalização do programa, apenas o tempo gasto na execução da função de multiplicação.
     \[
         T = T_{end} - T_{start}
     \]
@@ -268,16 +196,9 @@ tabsize=2 % Tamanho do tab
         \item $T_{end}$ é o tempo registrado ao final da execução da função.
     \end{itemize}
 
-    Esse procedimento é feito com a função \texttt{omp\_get\_wtime()} do OpenMP, 
-    que retorna o tempo em segundos desde uma época fixa.
+    Esse procedimento é feito com a função \texttt{omp\_get\_wtime()} do OpenMP, que retorna o tempo em segundos desde uma época fixa.
 
-    Foi utilizado um script em python para automatizar a execução dos testes,
-    coletar os tempos e calcular as métricas de speedup e eficiência. O script
-    cria matrizes de tamanhos variados, que são passadas como entrada para
-    ambas as versões do código (sequencial e paralela), executa cada versão
-    múltiplas vezes para obter uma média dos tempos, calcula as métricas
-    de desempenho e gera um relatório com os resultados, que foram utilizados
-    para criar os gráficos apresentados na seção de resultados.
+    Foi utilizado um script em python para automatizar a execução dos testes, coletar os tempos e calcular as métricas de speedup e eficiência. O script cria matrizes de tamanhos variados, que são passadas como entrada para ambas as versões do código (sequencial e paralela), executa cada versão múltiplas vezes para obter uma média dos tempos, calcula as métricas de desempenho e gera um relatório com os resultados, que foram utilizados para criar os gráficos apresentados na seção de resultados.
 
 	\subsubsection{Speedup}
 	Mede o ganho de desempenho da versão paralela em relação à sequencial.
@@ -316,9 +237,7 @@ tabsize=2 % Tamanho do tab
 
 	\subsection{Sem otimizações}
 
-	Inicialmente, os testes foram realizados com a versão paralela sem otimizações. Foram testados 
-	tamanhos de matrizes quadradas de $512$ até $4096$ (incrementando de $512$ em $512$) e números
-	de threads variando de $1$ a $16$ (em potências de $2$).
+	Inicialmente, os testes foram realizados com a versão paralela sem otimizações. Foram testados tamanhos de matrizes quadradas de $512$ até $4096$ (incrementando de $512$ em $512$) e números de threads variando de $1$ a $16$ (em potências de $2$).
 
 	\subsubsection{Tempo de execução}
 
@@ -329,11 +248,7 @@ tabsize=2 % Tamanho do tab
 		\label{fig:tempo_execucao}
 	\end{figure}
 
-	A Figura \ref{fig:tempo_execucao} mostra o tempo de execução das versões sequencial e paralela
-	(sem otimizações) para diferentes tamanhos de matrizes e números de threads. Observa-se que a versão paralela
-	tem um desempenho significativamente melhor, especialmente para matrizes maiores e com mais threads. A relação
-	entre o tempo de execução e o número de threads é notavel, tendo em vista que quando dobram-se o número de threads,
-	o tempo de execução quase reduz pela metade.
+	A Figura \ref{fig:tempo_execucao} mostra o tempo de execução das versões sequencial e paralela (sem otimizações) para diferentes tamanhos de matrizes e números de threads. Observa-se que a versão paralela tem um desempenho significativamente melhor, especialmente para matrizes maiores e com mais threads. A relação entre o tempo de execução e o número de threads é notavel, tendo em vista que quando dobram-se o número de threads, o tempo de execução quase reduz pela metade.
 
 	\subsubsection{Speedup}
 
@@ -344,9 +259,7 @@ tabsize=2 % Tamanho do tab
 		\label{fig:speedup}
 	\end{figure}
 
-	A Figura \ref{fig:speedup} apresenta o speedup alcançado pela versão paralela em relação à sequencial para diferentes
-	tamanhos de matrizes e números de threads. O speedup se mantém quase constante em relação ao tamanho da matriz, o que
-	já era esperado, mas aumenta quase linearmente com o número de threads, indicando uma boa escalabilidade da implementação paralela.
+	A Figura \ref{fig:speedup} apresenta o speedup alcançado pela versão paralela em relação à sequencial para diferentes tamanhos de matrizes e números de threads. O speedup se mantém quase constante em relação ao tamanho da matriz, o que já era esperado, mas aumenta quase linearmente com o número de threads, indicando uma boa escalabilidade da implementação paralela.
 
 	\subsubsection{Eficiência}
 
@@ -357,13 +270,11 @@ tabsize=2 % Tamanho do tab
 		\label{fig:eficiencia}
 	\end{figure}
 
-	A Figura \ref{fig:eficiencia} mostra a eficiência da versão paralela em relação ao número de threads e tamanhos de matrizes.
-	Observa-se que a eficiência diminui com o aumento do número de threads, o que é esperado devido à sobrecarga de gerenciamento de threads. No entanto, a eficiência se mantém relativamente alta (acima de 0.8) para até 8 threads, indicando que a paralelização é eficaz.
+	A Figura \ref{fig:eficiencia} mostra a eficiência da versão paralela em relação ao número de threads e tamanhos de matrizes. Observa-se que a eficiência diminui com o aumento do número de threads, o que é esperado devido à sobrecarga de gerenciamento de threads. No entanto, a eficiência se mantém relativamente alta (acima de 0.8) para até 8 threads, indicando que a paralelização é eficaz.
 
 	\subsection{Com otimizações}
 
-	Após implementar as otimizações, os testes foram repetidos com a versão paralela otimizada. Foram testados
-	os mesmos parametros utilizados anteriormente.
+	Após implementar as otimizações, os testes foram repetidos com a versão paralela otimizada. Foram testados os mesmos parametros utilizados anteriormente.
 
 	\subsubsection{Tempo de execução}
 
@@ -374,11 +285,7 @@ tabsize=2 % Tamanho do tab
 		\label{fig:tempo_execucao_otimizado}
 	\end{figure}
 
-	É possível observar na Figura \ref{fig:tempo_execucao_otimizado} que o tempo de execução da versão otimizada é
-	significativamente menor do que o da versão sem otimizações, especialmente para matrizes maiores. 
-	Fazendo com que o tempo de execução caia de mais de 400 segundos para menos de 35 segundos no o pior caso
-	em ambas as versões. O tempo de execução diminui ainda mais com o aumento do número de threads, chegando até
-	a cerca de 5 segundos para 16 threads em seu pior caso.
+	É possível observar na Figura \ref{fig:tempo_execucao_otimizado} que o tempo de execução da versão otimizada é significativamente menor do que o da versão sem otimizações, especialmente para matrizes maiores. Fazendo com que o tempo de execução caia de mais de 400 segundos para menos de 35 segundos no o pior caso em ambas as versões. O tempo de execução diminui ainda mais com o aumento do número de threads, chegando até a cerca de 5 segundos para 16 threads em seu pior caso.
 
 	\subsubsection{Speedup}
 
@@ -389,9 +296,7 @@ tabsize=2 % Tamanho do tab
 		\label{fig:speedup_otimizado}
 	\end{figure}
 
-	Na Figura \ref{fig:speedup_otimizado}, o speedup da versão otimizada é visivelmente menor em relação à versão sem otimizações.
-	Isso se deve ao fato de que a versão sequencial otimizada também teve uma melhora significativa, reduzindo o ganho relativo da versão paralela.
-	No entanto, o speedup ainda aumenta com o número de threads, indicando que a paralelização continua sendo eficaz.
+	Na Figura \ref{fig:speedup_otimizado}, o speedup da versão otimizada é visivelmente menor em relação à versão sem otimizações. Isso se deve ao fato de que a versão sequencial otimizada também teve uma melhora significativa, reduzindo o ganho relativo da versão paralela. Também é possível observer um overhead computacional para os problemas menores, visto que o speedup para 16 threads é menor do que para 8 threads em matrizes de tamanho 512 e 1024. No entanto, o speedup ainda aumenta com o número de threads, para problemas maiores, indicando que a paralelização continua sendo eficaz.
 
 	\subsubsection{Eficiência}
 
@@ -402,31 +307,59 @@ tabsize=2 % Tamanho do tab
 		\label{fig:eficiencia_otimizado}
 	\end{figure}
 
-	A Figura \ref{fig:eficiencia_otimizado} mostra que a eficiência da versão otimizada também possui uma eficiência menor em relação à versão sem otimizações.
-	Isso é esperado, pois o speedup diminuiu. No entanto, a eficiência se mantém acima de 0.5 para até 8 threads, o que ainda é um resultado positivo, considerando as otimizações aplicadas.
+	A Figura \ref{fig:eficiencia_otimizado} mostra que a eficiência da versão otimizada também possui uma eficiência menor em relação à versão sem otimizações. Isso é esperado, pois o speedup diminuiu. No entanto, a eficiência se mantém acima de 0.5 para até 8 threads, o que ainda é um resultado positivo, considerando as otimizações aplicadas.
 
+	\newpage
 	\section{Discussão}
 
 	\subsection{Comparação entre as versões sequencial e paralela}
-	% Análise comparativa dos resultados
+	
+	A versão paralela simples (cada thread calcula um subconjunto de linhas de \texttt{C}) reduz o tempo de execução relativo à implementação sequencial por explorar paralelismo de dados nas linhas da matriz resultante. Contudo, a versão paralela otimizada (transposição de \texttt{B} + tiling) apresenta desempenho substancialmente melhor do que as versões não otimizadas, a transposição melhora a localidade de acesso em \texttt{B}, o tiling reduz faltas de cache e as diretivas OpenMP bem aplicadas minimizam overhead de paralelismo e maximizam uso de recursos. A versão sequencial otimizada também é significativamente mais rápida que a paralela simples com 16 threads, mostrando que otimizações de memória e localidade são cruciais mesmo sem paralelismo. Em termos práticos, a ordem de desempenho observada costuma ser: \texttt{dgemm\_parallel\_opt} $>$ \texttt{dgemm\_sequential\_opt} $>$ \texttt{dgemm\_parallel} $>$ \texttt{dgemm\_sequencial}, refletindo a importância tanto do paralelismo quanto da otimização de memória.
 
 	\subsection{Impacto do aumento do número de threads}
-	% Como o número de threads afetou o desempenho
 
-	\subsection{Discussão de gargalos e limitações encontradas}
-	% Identificar problemas e limitações
+	O ganho com aumento de threads não é linear. Inicialmente há aceleração significativa, mas com o aumento das threads surgem retornos decrescentes por causa de overhead de criação/sincronização, e possíveis efeitos de acesso de memória em sistemas com múltiplos sockets. Além disso, para tamanhos de problema pequenos o overhead de paralelização pode anular o benefício. A eficiência tende a cair com mais threads, pois o speedup não cresce na mesma proporção. Isso é típico em paralelismo devido a fatores como contenção de memória, overhead de gerenciamento de threads e desequilíbrio de carga. Em geral, há um ponto ótimo de threads para cada tamanho de problema, onde o ganho máximo é alcançado antes que o overhead comece a dominar.
+
+	\subsection{Gargalos e limitações encontradas}
+	Principais gargalos identificáveis a partir do código:
+	\begin{itemize}
+		\item \textbf{Banda de memória:} múltiplas threads acessando grandes matrizes podem saturar a memória principal, limitando o ganho.
+
+		\item \textbf{Localidade de dados:} sem transposição e tiling, acessos a \texttt{B} são com saltos, causando muitas faltas de cache.
+		
+		\item \textbf{Overhead de paralelismo:} regiões paralelas muito curtas ou sincronizações frequentes (barriers) reduzem eficiência.
+		
+		\item \textbf{Alocação de \texttt{Bt}:} alocar e liberar \texttt{Bt} a cada chamada pode custar tempo.
+		
+		\item \textbf{Balanceamento de carga:} com \texttt{schedule(static)} por blocos, blocos finais menores podem causar leve desequilíbrio dependendo dos tamanhos.
+	\end{itemize}
 
 	\subsection{Sugestões de melhorias}
-	% Propostas para melhorar o desempenho
+	Para melhorar desempenho e escalabilidade sugiro, por ordem prática de impacto:
+	\begin{itemize}
+		\item Reusar a memória de \texttt{Bt} entre chamadas (evitar malloc/free repetidos) e garantir alinhamento adequado.
+		
+		\item Experimentos com diferentes tamanhos de bloco (\texttt{BS}) para ajustar ao conjunto de caches da máquina; considerar bloqueio adaptativo.
+		
+		\item Testar \texttt{schedule(dynamic, ...)} para casos com blocos de tamanhos irregulares ou usar heurísticas para balanceamento.
 
+		\item Medir com ferramentas de profiling para identificar o verdadeiro gargalo antes de otimizações adicionais.
+	\end{itemize}
+
+	Em suma, as otimizações de memória (transposição, tiling) e a vetorização trazem ganhos tão ou mais importantes que a simples paralelização. Combinar afinamento do \texttt{BS}, reuso de memória e estratégias de escalonamento pode levar a melhorias adicionais significativas.
+
+	\newpage
 	\section{Conclusão}
 
 	\subsection{Principais aprendizados do projeto}
-	% O que foi aprendido com o projeto
+	
+	Este projeto proporcionou uma compreensão prática e teórica dos conceitos de paralelismo em memória compartilhada. A implementação da multiplicação de matrizes DGEMM, tanto na versão sequencial quanto na paralela, permitiu explorar os desafios e benefícios da computação paralela. Além disso, a aplicação de otimizações como transposição de matrizes e tiling destacou a importância da localidade de dados e do acesso eficiente à memória para o desempenho computacional. A análise de desempenho, incluindo métricas como tempo de execução, speedup e eficiência, foi fundamental para avaliar a eficácia das implementações e entender os trade-offs envolvidos. Em resumo, o projeto reforçou a importância do paralelismo e das otimizações de memória na computação de alto desempenho.
 
 	\subsection{Considerações sobre desempenho obtido}
-	% Avaliação geral dos resultados
+	
+	Comparando a implementação original (sequencial sem otimizações) com a versão final que foi implementada, para matrizes de tamanho $4096 \times 4096$, o tempo de execução caiu de aproximadamente 412 segundos para cerca de 5.4 segundos na versão paralela otimizada com 16 threads. Isso representa uma redução de tempo de execução em torno de 7,650\%, evidenciando o impacto significativo das otimizações aplicadas. O speedup alcançado foi substancial, embora não linear, devido aos fatores discutidos anteriormente, como overhead de paralelismo e limitações de banda de memória. A eficiência da versão paralela otimizada se manteve relativamente alta, especialmente para até 8 threads, indicando que as estratégias adotadas foram eficazes em maximizar o uso dos recursos computacionais disponíveis.
 
+	\newpage
 	\begin{thebibliography}{9}
 		\bibitem{latexcompanion} \textit{Orellana, E.}, \texttt{Materiais de slides vistos em aula}
 
