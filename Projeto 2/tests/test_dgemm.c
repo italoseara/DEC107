@@ -89,10 +89,10 @@ void test_dgemm_parallel_openmp() {
 }
 
 void test_dgemm_parallel_mpi() {
-    int provided = 0, initialized = 0;
+    int initialized = 0;
     MPI_Initialized(&initialized);
     if (!initialized) {
-        MPI_Init_thread(NULL, NULL, MPI_THREAD_FUNNELED, &provided);
+        MPI_Init(NULL, NULL);
     }
 
     int world_rank = 0;

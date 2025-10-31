@@ -82,10 +82,10 @@ int main(int argc, char** argv) {
 	double* C = NULL;
 
 	if (alg == ALG_MPI) {
-		int provided = 0, initialized = 0;
+		int initialized = 0;
 		MPI_Initialized(&initialized);
 		if (!initialized) {
-			MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+			MPI_Init(&argc, &argv);
 		}
 		int world_rank = 0, world_size = 1;
 		MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);

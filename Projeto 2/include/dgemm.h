@@ -54,8 +54,9 @@ double* dgemm_parallel_openmp(const double* A, const double* B, int M, int N, in
  * @param N Número de colunas de B e C.
  * @param K Número de colunas de A e linhas de B.
  * @return Ponteiro para um array recém-alocado de comprimento M*N contendo C em
- *         ordem por linhas, ou NULL em caso de falha de alocação ou entrada inválida.
- *         O chamador é responsável por liberar o buffer retornado.
+ *         ordem por linhas, ou NULL em caso do rank não ser o root ou em caso de 
+ *         falha de alocação ou entrada inválida. O chamador é responsável por 
+ *         liberar o buffer retornado.
  */
 double* dgemm_parallel_mpi(const double* A, const double* B, int M, int N, int K);
 
