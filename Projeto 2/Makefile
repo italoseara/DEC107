@@ -12,7 +12,7 @@ K ?= 512
 
 ##### Compiler and flags
 MPICC   ?= mpicc
-CFLAGS  ?= -O2 -Wall -Wextra -Wunused-parameter -std=c11 -fopenmp
+CFLAGS  ?= -O2 -Wall -Wextra -Wno-unused-parameter -std=c11 -fopenmp
 LDFLAGS ?= -fopenmp
 LDLIBS  ?= -lm
 # BLAS/CBLAS linkage for tests (override if needed, e.g., BLAS_LIBS="-lcblas -lblas")

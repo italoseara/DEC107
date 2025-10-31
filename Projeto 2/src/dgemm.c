@@ -22,16 +22,17 @@ double* dgemm_serial(const double* A, const double* B, int M, int N, int K) {
         return NULL;
     }
 
-    // Transpor B para acesso contíguo. Bt tem dimensões m x k (linha j é a coluna j de B).
-    double* Bt = malloc((size_t)M * (size_t)K * sizeof(double));
+    // Transpor B para acesso contíguo. Bt tem dimensões N x K (linha j é a coluna j de B).
+    double* Bt = malloc((size_t)N * (size_t)K * sizeof(double));
     if (!Bt) {
         fprintf(stderr, "Erro: malloc Bt\n");
+        free(C);
         return NULL;
     }
 
     for (int p = 0; p < K; ++p) {
-        for (int j = 0; j < M; ++j) {
-            Bt[j * K + p] = B[p * M + j];
+        for (int j = 0; j < N; ++j) {
+            Bt[j * K + p] = B[p * N + j];
         }
     }
 
@@ -44,10 +45,10 @@ double* dgemm_serial(const double* A, const double* B, int M, int N, int K) {
     const int BS = 64;
 
     // Multiplicação em blocos.
-    for (int ii = 0; ii < N; ii += BS) {
-        for (int jj = 0; jj < M; jj += BS) {
-            int i_max = MIN(N, ii + BS);
-            int j_max = MIN(M, jj + BS);
+    for (int ii = 0; ii < M; ii += BS) {
+        for (int jj = 0; jj < N; jj += BS) {
+            int i_max = MIN(M, ii + BS);
+            int j_max = MIN(N, jj + BS);
 
             // Percorre o bloco (ii,jj) de C
             for (int kk = 0; kk < K; kk += BS) {
@@ -56,7 +57,7 @@ double* dgemm_serial(const double* A, const double* B, int M, int N, int K) {
                 // Multiplica o bloco A[ii:i_max, kk:k_max] com o bloco Bt[jj:j_max, kk:k_max]
                 for (int i = ii; i < i_max; ++i) {
                     const double* Ai = A + i * K + kk;
-                    double* Ci = C + i * M;
+                    double* Ci = C + i * N;
 
                     for (int j = jj; j < j_max; ++j) {
                         const double* Bj = Bt + j * K + kk;
@@ -86,15 +87,15 @@ double* dgemm_parallel_openmp(const double* A, const double* B, int M, int N, in
         num_threads = 1;
     }
 
-    // Aloca espaço para a matriz resultado C (dimensões N x M).
+    // Aloca espaço para a matriz resultado C (dimensões M x N).
     double* C = malloc((size_t)M * (size_t)N * sizeof(double));
     if (!C) {
         fprintf(stderr, "Erro: malloc C\n");
         return NULL;
     }
 
-    // Transpor B para acesso contíguo. Bt tem dimensões M x K (linha j é a coluna j de B).
-    double* Bt = malloc((size_t)M * (size_t)K * sizeof(double));
+    // Transpor B para acesso contíguo. Bt tem dimensões N x K (linha j é a coluna j de B).
+    double* Bt = malloc((size_t)N * (size_t)K * sizeof(double));
     if (!Bt) {
         fprintf(stderr, "Erro: malloc Bt\n");
         free(C);
@@ -103,8 +104,8 @@ double* dgemm_parallel_openmp(const double* A, const double* B, int M, int N, in
 
     #pragma omp parallel for num_threads(num_threads) // Paraleliza a transposição de B
     for (int p = 0; p < K; ++p) {
-        for (int j = 0; j < M; ++j) {
-            Bt[j * K + p] = B[p * M + j];
+        for (int j = 0; j < N; ++j) {
+            Bt[j * K + p] = B[p * N + j];
         }
     }
 
@@ -123,10 +124,10 @@ double* dgemm_parallel_openmp(const double* A, const double* B, int M, int N, in
         // collapse(2) para paralelizar os dois loops externos (ii, jj)
         // schedule(static) para distribuir blocos de forma estática entre threads
         #pragma omp for collapse(2) schedule(static)
-        for (int ii = 0; ii < N; ii += BS) {
-            for (int jj = 0; jj < M; jj += BS) {
-                int i_max = MIN(N, ii + BS);
-                int j_max = MIN(M, jj + BS);
+        for (int ii = 0; ii < M; ii += BS) {
+            for (int jj = 0; jj < N; jj += BS) {
+                int i_max = MIN(M, ii + BS);
+                int j_max = MIN(N, jj + BS);
 
                 // Percorre o bloco (ii,jj) de C
                 for (int kk = 0; kk < K; kk += BS) {
@@ -135,7 +136,7 @@ double* dgemm_parallel_openmp(const double* A, const double* B, int M, int N, in
                     // Multiplica o bloco A[ii:i_max, kk:k_max] com o bloco Bt[jj:j_max, kk:k_max]
                     for (int i = ii; i < i_max; ++i) {
                         const double* Ai = A + i * K + kk;
-                        double* Ci = C + i * M;
+                        double* Ci = C + i * N;
 
                         for (int j = jj; j < j_max; ++j) {
                             const double* Bj = Bt + j * K + kk;

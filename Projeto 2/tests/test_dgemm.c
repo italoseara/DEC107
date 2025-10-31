@@ -12,21 +12,29 @@
 
 #include "../include/dgemm.h"
 
-// Variáveis de teste
-static const int TEST_M = 4;
-static const int TEST_N = 4;
-static const int TEST_K = 4;
-static const double A_init[16] = {
-    1.0, 2.0, 3.0, 4.0,
-    5.0, 6.0, 7.0, 8.0,
-    9.0, 10.0, 11.0, 12.0,
-    13.0, 14.0, 15.0, 16.0
+// Variáveis de teste (aumentadas)
+static const int TEST_M = 8;
+static const int TEST_N = 8;
+static const int TEST_K = 8;
+static const double A_init[64] = {
+    1.0,  2.0,  3.0,  4.0,  5.0,  6.0,  7.0,  8.0,
+    9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0,
+    17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0,
+    25.0, 26.0, 27.0, 28.0, 29.0, 30.0, 31.0, 32.0,
+    33.0, 34.0, 35.0, 36.0, 37.0, 38.0, 39.0, 40.0,
+    41.0, 42.0, 43.0, 44.0, 45.0, 46.0, 47.0, 48.0,
+    49.0, 50.0, 51.0, 52.0, 53.0, 54.0, 55.0, 56.0,
+    57.0, 58.0, 59.0, 60.0, 61.0, 62.0, 63.0, 64.0
 };
-static const double B_init[16] = {
-    16.0, 15.0, 14.0, 13.0,
-    12.0, 11.0, 10.0, 9.0,
-    8.0, 7.0, 6.0, 5.0,
-    4.0, 3.0, 2.0, 1.0
+static const double B_init[64] = {
+    64.0, 63.0, 62.0, 61.0, 60.0, 59.0, 58.0, 57.0,
+    56.0, 55.0, 54.0, 53.0, 52.0, 51.0, 50.0, 49.0,
+    48.0, 47.0, 46.0, 45.0, 44.0, 43.0, 42.0, 41.0,
+    40.0, 39.0, 38.0, 37.0, 36.0, 35.0, 34.0, 33.0,
+    32.0, 31.0, 30.0, 29.0, 28.0, 27.0, 26.0, 25.0,
+    24.0, 23.0, 22.0, 21.0, 20.0, 19.0, 18.0, 17.0,
+    16.0, 15.0, 14.0, 13.0, 12.0, 11.0, 10.0,  9.0,
+    8.0,  7.0,  6.0,  5.0,  4.0,  3.0,  2.0,  1.0
 };
 
 // Adaptadores para as funções dgemm
@@ -60,23 +68,33 @@ static void compare_and_report(const double *C, const double *C_ref, size_t elem
 
 static void run_test(dgemm_adapter_fn fn, const char *name, int threads) {
     const int M = TEST_M, N = TEST_N, K = TEST_K;
-    double A[16], B[16];
-    memcpy(A, A_init, sizeof(A));
-    memcpy(B, B_init, sizeof(B));
+    size_t size_A = (size_t)M * (size_t)K;
+    size_t size_B = (size_t)K * (size_t)N;
+    size_t size_C = (size_t)M * (size_t)N;
+
+    double *A = (double*)malloc(size_A * sizeof(double));
+    double *B = (double*)malloc(size_B * sizeof(double));
+    assert(A && B);
+    memcpy(A, A_init, size_A * sizeof(double));
+    memcpy(B, B_init, size_B * sizeof(double));
 
     double *C = fn(A, B, M, N, K, threads);
     assert(C != NULL);
 
-    double C_ref[16];
+    double *C_ref = (double*)malloc(size_C * sizeof(double));
+    assert(C_ref);
     cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
                 M, N, K,
-                1.0, A, K,
-                B, N,
-                0.0, C_ref, N);
+                1.0, A, (int)K,
+                B, (int)N,
+                0.0, C_ref, (int)N);
 
-    compare_and_report(C, C_ref, (size_t)M * N, name);
+    compare_and_report(C, C_ref, size_C, name);
 
     free(C);
+    free(C_ref);
+    free(A);
+    free(B);
     printf("%s passed.\n", name);
 }
 
