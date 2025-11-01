@@ -258,7 +258,6 @@ double* dgemm_parallel_mpi(const double* A, const double* B, int M, int N, int K
         // Inicializa com zero
         for (int i = 0; i < local_rows * N; ++i) C_local[i] = 0.0;
 
-        // Implementação simples (poderia ser blocada como nas outras variantes)
         const int BS = 64; // bloco simples para cache
         for (int ii = 0; ii < local_rows; ii += BS) {
             int i_max = MIN(local_rows, ii + BS);

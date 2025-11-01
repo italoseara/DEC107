@@ -25,7 +25,7 @@ BUILD_DIR := build
 
 ##### Files
 SRCS := $(SRC_DIR)/dgemm.c $(SRC_DIR)/main.c
-BIN  := $(BUILD_DIR)/dgemm_run
+BIN  := $(BUILD_DIR)/dgemm
 
 # Tests
 TEST_SRCS := $(SRC_DIR)/dgemm.c tests/test_dgemm.c

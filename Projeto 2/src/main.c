@@ -2,10 +2,11 @@
  * Executor simples para variantes de DGEMM (serial, openmp, mpi)
  * 
  * Uso (prefira via Makefile):
- *  ./build/dgemm_run --alg [serial|openmp|mpi] --threads <n> --m <M> --n <N> --k <K>
+ *  ./dgemm --alg [serial|openmp|mpi] --threads <n> --m <M> --n <N> --k <K>
  * 
  * Imprime apenas o tempo decorrido em segundos no stdout.
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -100,7 +101,8 @@ int main(int argc, char** argv) {
 		if (world_rank == 0) {
 			if (!C) {
 				fprintf(stderr, "dgemm_parallel_mpi retornou NULL\n");
-				free(A); free(B);
+				free(A);
+				free(B);
 				MPI_Finalize();
 				return 1;
 			}
@@ -141,8 +143,8 @@ int main(int argc, char** argv) {
 	printf("%.9f\n", elapsed);
 	fflush(stdout);
 
-	free(C);
 	free(A);
 	free(B);
+	free(C);
 	return 0;
 }
