@@ -11,6 +11,8 @@
 \usepackage{hyperref}
 \usepackage{setspace}
 \usepackage{listings}
+\usepackage{float}
+\usepackage{graphicx}
 
 \lstset{ 
     basicstyle=\ttfamily\small, % Fonte monoespaçada
@@ -191,16 +193,96 @@
     \newpage
     \section{Resultados}\label{sec:resultados}
 
-    % Conteúdo de resultados (tabelas, gráficos, análises)
+    Nesta seção, apresentamos os resultados obtidos a partir dos testes realizados nas implementações sequencial, paralela com OpenMP e paralela com MPI da multiplicação de matrizes DGEMM.\@ Os resultados incluem a validação de corretude, tabelas e gráficos de desempenho, bem como cálculos de \emph{speedup} e eficiência.
+
+    Uma diferença em relação ao Projeto 1 é que o \emph{speedup} e a eficiência foram calculados em relação à mesma implementação porém com 1 thread/processo, ou seja, a implementação com OpenMP foi comparada com ela mesma utilizando 1 thread, e a implementação com MPI foi comparada com ela mesma utilizando 1 processo. Isso foi feito para evitar que diferenças de implementação afetassem os resultados de \emph{speedup} e eficiência.
+
+    \subsection{Tempo de execução}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{img/execution-time-openmp.png}
+        \caption{Tempo de execução (OpenMP)}\label{fig:tempo_execucao_omp}
+    \end{figure}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{img/execution-time-mpi.png}
+        \caption{Tempo de execução (MPI)}\label{fig:tempo_execucao_mpi}
+    \end{figure}
+
+    As Figuras~\ref{fig:tempo_execucao_omp} e~\ref{fig:tempo_execucao_mpi} mostram o tempo de execução das implementações com OpenMP e MPI, respectivamente, para diferentes tamanhos de matrizes e números de threads/processos. Observa-se que o tempo de execução diminui com o aumento do número de threads/processos, evidenciando o benefício do paralelismo. Contudo, é possível perceber que a implementação com OpenMP apresenta tempos de execução menores em comparação com a implementação com MPI para o mesmo número de threads/processos, o que pode ser atribuído à sobrecarga de comunicação inerente ao modelo de memória distribuída utilizado pelo MPI.\@
+
+    \subsection{Speedup}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{img/speedup-openmp.png}
+        \caption{Speedup (OpenMP)}\label{fig:speedup_omp}
+    \end{figure}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{img/speedup-mpi.png}
+        \caption{Speedup (MPI)}\label{fig:speedup_mpi}
+    \end{figure}
+
+    As Figuras~\ref{fig:speedup_omp} e~\ref{fig:speedup_mpi} apresentam o \emph{speedup} obtido pelas implementações com OpenMP e MPI, respectivamente. Observa-se que ambas as implementações conseguem alcançar um \emph{speedup} significativo com o aumento do número de threads/processos.
+
+    \subsection{Eficiência}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{img/efficiency-openmp.png}
+        \caption{Eficiência (OpenMP)}\label{fig:eficiencia_omp}
+    \end{figure}
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.9\textwidth]{img/efficiency-mpi.png}
+        \caption{Eficiência (MPI)}\label{fig:eficiencia_mpi}
+    \end{figure}
+
+    As Figuras~\ref{fig:eficiencia_omp} e~\ref{fig:eficiencia_mpi} mostram a eficiência das implementações com OpenMP e MPI, respectivamente. A eficiência tende a diminuir com o aumento do número de threads/processos, o que é esperado devido à sobrecarga de comunicação e sincronização. Não há uma diferença significativa na eficiência entre as duas implementações, embora a implementação com OpenMP apresente uma leve vantagem em alguns casos.
 
     \newpage
     \section{Discussão}\label{sec:discussao}
 
-    % Discussão dos resultados, limitações e análise
+    Nesta seção, discutimos os resultados obtidos nas implementações sequencial, paralela com OpenMP e paralela com MPI da multiplicação de matrizes DGEMM.\@ Analisamos o desempenho, a escalabilidade e as limitações de cada abordagem.
+
+    \subsection{Análise de Desempenho}
+
+    A implementação com OpenMP apresentou um desempenho superior em comparação com a implementação com MPI para o mesmo número de threads/processos. Isso pode ser atribuído à menor sobrecarga de comunicação no modelo de memória compartilhada utilizado pelo OpenMP, em contraste com o modelo de memória distribuída do MPI, que requer troca de mensagens entre processos.
+
+    \subsection{Escalabilidade}
+
+    Ambas as implementações demonstraram boa escalabilidade com o aumento do número de threads/processos. No entanto, a eficiência diminuiu à medida que o número de threads/processos aumentou, indicando que a sobrecarga de comunicação e sincronização começa a impactar negativamente o desempenho em configurações com muitos processos.
+
+    Porém, a versão com MPI possui uma vantagem clara: sua capacidade de escalar para um número maior de processos em ambientes distribuídos, como clusters de computadores, onde o OpenMP não é aplicável. Isso torna a implementação com MPI mais adequada para aplicações que exigem alta escalabilidade e distribuição de carga em múltiplos nós.
+
+    \subsection{Limitações}
+
+    Uma limitação observada na implementação com MPI é a complexidade adicional na gestão da comunicação entre processos, o que levou a diversos erros e dificuldades no debug. Além disso, a sobrecarga de comunicação pode se tornar um gargalo em sistemas com alta latência ou largura de banda limitada.
 
     \newpage
     \section{Conclusão}\label{sec:conclusao}
 
-    % Síntese dos aprendizados e propostas futuras
+    Neste relatório, apresentamos a implementação e análise de desempenho da multiplicação de matrizes DGEMM em suas versões sequencial, paralela com OpenMP e paralela com MPI.A implementação com OpenMP demonstrou um desempenho superior em ambientes de memória compartilhada, enquanto a implementação com MPI destacou-se pela sua capacidade de escalar em ambientes distribuídos. Ambas as implementações apresentaram boa escalabilidade, embora a eficiência tenha diminuído com o aumento do número de threads/processos devido à sobrecarga de comunicação.
+
+    Em trabalhos futuros, sugerimos explorar otimizações adicionais na implementação com MPI, como o uso de técnicas avançadas de comunicação e balanceamento de carga. Além disso, seria interessante investigar a combinação de OpenMP e MPI para aproveitar os benefícios de ambos os modelos de paralelismo em sistemas híbridos.
+
+    \newpage
+    \begin{thebibliography}{9}
+    \raggedright{}
+        \bibitem{latexcompanion} Orellana, E., \texttt{Materiais de slides vistos em aula}
+
+        \bibitem{latexcompanion} OPENMP, Disponível em: \url{https://www.openmp.org/wp-content/uploads/OpenMP-RefGuide-6.0-OMP60SC24-web.pdf}. Acesso em: 22 de Setembro de 2025.
+
+        \bibitem{knuthwebsite} Brasil Escola, Disponível em: \url{https://brasilescola.uol.com.br/matematica/multiplicacao-matrizes.htm}. Acesso em: 22 de Setembro de 2025.
+
+        \bibitem{knuthwebsite} VSP-BERLIN, Disponível em: \url{https://svn.vsp.tu-berlin.de/repos/public-svn/publications/kn-old/strc/html/node9.html}. Acesso em: 23 de Setembro de 2025.
+
+        \bibitem{knuthwebsite} Wikipedia, Disponível em: \url{https://en.wikipedia.org/wiki/Loop\_nest\_optimization}. Acesso em: 23 de Setembro de 2025.
+    \end{thebibliography}
 
 \end{document}
