@@ -37,40 +37,27 @@ static const double B_init[64] = {
     8.0,  7.0,  6.0,  5.0,  4.0,  3.0,  2.0,  1.0
 };
 
-// Adaptadores para as funções dgemm
-typedef double* (*dgemm_adapter_fn)(const double *A, const double *B, int M, int N, int K, int threads);
-
-static double* serial_adapter(const double *A, const double *B, int M, int N, int K, int threads) {
-    (void)threads;
-    return dgemm_serial((double*)A, (double*)B, M, N, K);
-}
-
-static double* openmp_adapter(const double *A, const double *B, int M, int N, int K, int threads) {
-    return dgemm_parallel_openmp((double*)A, (double*)B, M, N, K, threads);
-}
-
-static double* mpi_adapter(const double *A, const double *B, int M, int N, int K, int threads) {
-    return dgemm_parallel_mpi((double*)A, (double*)B, M, N, K);
-}
-
-// Funções de teste
-static void compare_and_report(const double *C, const double *C_ref, size_t elems, const char *name) {
-    const double tol = 1e-9;
+// Métrica de diferença relativa máxima conforme relatório
+static double max_relative_diff(const double *X, const double *Y, size_t elems, double eps, size_t *idx_out) {
+    double max_delta = 0.0;
+    size_t max_idx = 0;
     for (size_t i = 0; i < elems; ++i) {
-        double diff = fabs(C[i] - C_ref[i]);
-        if (diff > tol) {
-            fprintf(stderr, "%s failed at index %zu: got %.17g, expected %.17g, diff %.17g\n",
-                    name, i, C[i], C_ref[i], diff);
-            assert(0);
+        double denom = fabs(Y[i]) + eps; // evitar divisão por zero
+        double delta = fabs(X[i] - Y[i]) / denom;
+        if (delta > max_delta) {
+            max_delta = delta;
+            max_idx = i;
         }
-    } 
+    }
+    if (idx_out) *idx_out = max_idx;
+    return max_delta;
 }
 
-static void run_test(dgemm_adapter_fn fn, const char *name, int threads) {
+void test_dgemm_serial() {
     const int M = TEST_M, N = TEST_N, K = TEST_K;
-    size_t size_A = (size_t)M * (size_t)K;
-    size_t size_B = (size_t)K * (size_t)N;
-    size_t size_C = (size_t)M * (size_t)N;
+    const size_t size_A = (size_t)M * (size_t)K;
+    const size_t size_B = (size_t)K * (size_t)N;
+    const size_t size_C = (size_t)M * (size_t)N;
 
     double *A = (double*)malloc(size_A * sizeof(double));
     double *B = (double*)malloc(size_B * sizeof(double));
@@ -78,32 +65,74 @@ static void run_test(dgemm_adapter_fn fn, const char *name, int threads) {
     memcpy(A, A_init, size_A * sizeof(double));
     memcpy(B, B_init, size_B * sizeof(double));
 
-    double *C = fn(A, B, M, N, K, threads);
-    assert(C != NULL);
+    // Resultado sequencial
+    double *C_seq = dgemm_serial((double*)A, (double*)B, M, N, K);
+    assert(C_seq != NULL);
 
-    double *C_ref = (double*)malloc(size_C * sizeof(double));
-    assert(C_ref);
+    // Referência BLAS
+    double *C_blas = (double*)malloc(size_C * sizeof(double));
+    assert(C_blas);
     cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
                 M, N, K,
                 1.0, A, (int)K,
                 B, (int)N,
-                0.0, C_ref, (int)N);
+                0.0, C_blas, (int)N);
 
-    compare_and_report(C, C_ref, size_C, name);
+    // Diferença relativa máxima
+    size_t idx = 0;
+    const double eps = 1e-12;
+    const double tol = 1e-9;
+    double delta = max_relative_diff(C_seq, C_blas, size_C, eps, &idx);
+    if (delta > tol) {
+        fprintf(stderr, "test_dgemm_serial failed at index %zu: got %.17g, ref %.17g, rel-diff %.17g\n",
+                idx, C_seq[idx], C_blas[idx], delta);
+        assert(0);
+    }
 
-    free(C);
-    free(C_ref);
+    free(C_seq);
+    free(C_blas);
     free(A);
     free(B);
-    printf("%s passed.\n", name);
-}
-
-void test_dgemm_serial() {
-    run_test(serial_adapter, "test_dgemm_serial", 0);
+    printf("test_dgemm_serial passed.\n");
 }
 
 void test_dgemm_parallel_openmp() {
-    run_test(openmp_adapter, "test_dgemm_parallel_openmp", 2);
+    const int M = TEST_M, N = TEST_N, K = TEST_K;
+    const size_t size_A = (size_t)M * (size_t)K;
+    const size_t size_B = (size_t)K * (size_t)N;
+    const size_t size_C = (size_t)M * (size_t)N;
+
+    double *A = (double*)malloc(size_A * sizeof(double));
+    double *B = (double*)malloc(size_B * sizeof(double));
+    assert(A && B);
+    memcpy(A, A_init, size_A * sizeof(double));
+    memcpy(B, B_init, size_B * sizeof(double));
+
+    // Referência: versão sequencial
+    double *C_seq = dgemm_serial((double*)A, (double*)B, M, N, K);
+    assert(C_seq != NULL);
+
+    // Versão OpenMP
+    int threads = 2; // número de threads para o teste
+    double *C_omp = dgemm_parallel_openmp((double*)A, (double*)B, M, N, K, threads);
+    assert(C_omp != NULL);
+
+    // Diferença relativa máxima
+    size_t idx = 0;
+    const double eps = 1e-12;
+    const double tol = 1e-9;
+    double delta = max_relative_diff(C_omp, C_seq, size_C, eps, &idx);
+    if (delta > tol) {
+        fprintf(stderr, "test_dgemm_parallel_openmp failed at index %zu: got %.17g, seq %.17g, rel-diff %.17g\n",
+                idx, C_omp[idx], C_seq[idx], delta);
+        assert(0);
+    }
+
+    free(C_seq);
+    free(C_omp);
+    free(A);
+    free(B);
+    printf("test_dgemm_parallel_openmp passed.\n");
 }
 
 void test_dgemm_parallel_mpi() {
@@ -116,7 +145,45 @@ void test_dgemm_parallel_mpi() {
     int world_rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-    run_test(mpi_adapter, "test_dgemm_parallel_mpi", 0);
+    const int M = TEST_M, N = TEST_N, K = TEST_K;
+    const size_t size_A = (size_t)M * (size_t)K;
+    const size_t size_B = (size_t)K * (size_t)N;
+    const size_t size_C = (size_t)M * (size_t)N;
+
+    double *A = (double*)malloc(size_A * sizeof(double));
+    double *B = (double*)malloc(size_B * sizeof(double));
+    assert(A && B);
+    memcpy(A, A_init, size_A * sizeof(double));
+    memcpy(B, B_init, size_B * sizeof(double));
+
+    // Referência: calcular C_seq apenas no rank 0
+    double *C_seq = NULL;
+    if (world_rank == 0) {
+        C_seq = dgemm_serial((double*)A, (double*)B, M, N, K);
+        assert(C_seq != NULL);
+    }
+
+    // Versão MPI (apenas rank 0 recebe o resultado completo)
+    double *C_mpi = dgemm_parallel_mpi((double*)A, (double*)B, M, N, K);
+
+    if (world_rank == 0) {
+        assert(C_mpi != NULL);
+        size_t idx = 0;
+        const double eps = 1e-12;
+        const double tol = 1e-9;
+        double delta = max_relative_diff(C_mpi, C_seq, size_C, eps, &idx);
+        if (delta > tol) {
+            fprintf(stderr, "test_dgemm_parallel_mpi failed at index %zu: got %.17g, seq %.17g, rel-diff %.17g\n",
+                    idx, C_mpi[idx], C_seq[idx], delta);
+            assert(0);
+        }
+        printf("test_dgemm_parallel_mpi passed.\n");
+    }
+
+    if (C_seq) free(C_seq);
+    if (world_rank == 0 && C_mpi) free(C_mpi);
+    free(A);
+    free(B);
 
     if (!initialized) {
         MPI_Finalize();
@@ -128,6 +195,22 @@ int main() {
     test_dgemm_serial();
     test_dgemm_parallel_openmp();
     test_dgemm_parallel_mpi();
-    printf("All tests passed.\n");
+
+    int initialized = 0;
+    MPI_Initialized(&initialized);
+    if (!initialized) {
+        // MPI nunca foi inicializado; é seguro imprimir
+        printf("All tests passed.\n");
+    } else {
+        int finalized = 0;
+        MPI_Finalized(&finalized);
+        if (!finalized) {
+            int world_rank = 0;
+            MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+            if (world_rank == 0) {
+                printf("All tests passed.\n");
+            }
+        } // se já finalizado, evitar chamadas e impressões relacionadas a MPI
+    }
     return 0;
 }

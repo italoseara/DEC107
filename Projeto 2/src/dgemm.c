@@ -197,7 +197,10 @@ double* dgemm_parallel_mpi(const double* A, const double* B, int M, int N, int K
     int* displs_C     = (int*)malloc((size_t)world_size * sizeof(int));
     if (!sendcounts_A || !displs_A || !recvcounts_C || !displs_C) {
         fprintf(stderr, "Erro: malloc para vetores MPI\n");
-        free(sendcounts_A); free(displs_A); free(recvcounts_C); free(displs_C);
+        free(sendcounts_A); 
+        free(displs_A); 
+        free(recvcounts_C); 
+        free(displs_C);
         return NULL;
     }
 
@@ -235,7 +238,10 @@ double* dgemm_parallel_mpi(const double* A, const double* B, int M, int N, int K
     if (!B_full) {
         fprintf(stderr, "Erro: malloc B_full\n");
         free(A_local);
-        free(sendcounts_A); free(displs_A); free(recvcounts_C); free(displs_C);
+        free(sendcounts_A); 
+        free(displs_A); 
+        free(recvcounts_C); 
+        free(displs_C);
         return NULL;
     }
     if (world_rank == 0) {
@@ -252,7 +258,10 @@ double* dgemm_parallel_mpi(const double* A, const double* B, int M, int N, int K
             fprintf(stderr, "Erro: malloc C_local\n");
             free(B_full);
             free(A_local);
-            free(sendcounts_A); free(displs_A); free(recvcounts_C); free(displs_C);
+            free(sendcounts_A); 
+            free(displs_A);
+            free(recvcounts_C);
+            free(displs_C);
             return NULL;
         }
         // Inicializa com zero
@@ -291,7 +300,10 @@ double* dgemm_parallel_mpi(const double* A, const double* B, int M, int N, int K
             free(C_local);
             free(B_full);
             free(A_local);
-            free(sendcounts_A); free(displs_A); free(recvcounts_C); free(displs_C);
+            free(sendcounts_A);
+            free(displs_A);
+            free(recvcounts_C);
+            free(displs_C);
             return NULL;
         }
     }
@@ -304,7 +316,10 @@ double* dgemm_parallel_mpi(const double* A, const double* B, int M, int N, int K
     free(C_local);
     free(B_full);
     free(A_local);
-    free(sendcounts_A); free(displs_A); free(recvcounts_C); free(displs_C);
+    free(sendcounts_A);
+    free(displs_A);
+    free(recvcounts_C);
+    free(displs_C);
 
     // Retornar C apenas no rank 0; demais retornam NULL.
     return C_full;
