@@ -118,19 +118,15 @@ int main(int argc, char** argv) {
 	}
 
 	// Caminho Serial: medir com clock_gettime; OpenMP: medir com omp_get_wtime
+	double t0 = omp_get_wtime();
 	if (alg == ALG_SERIAL) {
-		double t0 = clock();
 		C = dgemm_serial(A, B, M, N, K);
-		double t1 = clock();
-
-		elapsed = (double)(t1 - t0) / CLOCKS_PER_SEC;
 	} else if (alg == ALG_OPENMP) {
-		double t0 = omp_get_wtime();
-		C = dgemm_parallel_openmp(A, B, M, N, K, threads);
-		double t1 = omp_get_wtime();
-
-		elapsed = t1 - t0;
+        omp_set_num_threads(threads);
+		C = dgemm_parallel_openmp(A, B, M, N, K);
 	}
+	double t1 = omp_get_wtime();
+	elapsed = t1 - t0;
 
 	if (!C) {
 		fprintf(stderr, "dgemm returned NULL (allocation or input error)\n");

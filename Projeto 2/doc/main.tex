@@ -152,7 +152,7 @@
         \item $T_{end}$ é o tempo registrado ao final da execução da função.
     \end{itemize}
 
-    O tempo total de execução será medido utilizando a função \texttt{MPI\_Wtime()} para a versão MPI, e \texttt{omp\_get\_wtime()} para a versão OpenMP e a função \texttt{clock()} da biblioteca \texttt{time.h} para a versão sequencial.
+    O tempo total de execução será medido utilizando a função \texttt{MPI\_Wtime()} para a versão MPI, e \texttt{omp\_get\_wtime()} para a versão OpenMP e para a versão sequencial.
 
     Foi utilizado um script em python para automatizar a execução dos testes e coletar os tempos. O script executa cada versão múltiplas vezes com diferentes entradas para obter uma média dos tempos, calcula as métricas de desempenho e gera um relatório com os resultados, que foram utilizados para criar os gráficos apresentados na seção de resultados.
 

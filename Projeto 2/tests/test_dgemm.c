@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <cblas.h>
 #include <mpi.h>
+#include <omp.h>
 
 #include "../include/dgemm.h"
 
@@ -114,7 +115,8 @@ void test_dgemm_parallel_openmp() {
 
     // Versão OpenMP
     int threads = 2; // número de threads para o teste
-    double *C_omp = dgemm_parallel_openmp((double*)A, (double*)B, M, N, K, threads);
+    omp_set_num_threads(threads);
+    double *C_omp = dgemm_parallel_openmp((double*)A, (double*)B, M, N, K);
     assert(C_omp != NULL);
 
     // Diferença relativa máxima

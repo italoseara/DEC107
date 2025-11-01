@@ -32,13 +32,11 @@ double* dgemm_serial(const double* A, const double* B, int M, int N, int K);
  * @param M Número de linhas de A e C.
  * @param N Número de colunas de B e C.
  * @param K Número de colunas de A e linhas de B.
- * @param num_threads Número de threads OpenMP a utilizar (a implementação pode
- *                    escolher um número diferente se necessário).
  * @return Ponteiro para um array recém-alocado de comprimento M*N contendo C em
  *         ordem por linhas, ou NULL em caso de falha de alocação ou entrada inválida.
  *         O chamador é responsável por liberar o buffer retornado.
  */
-double* dgemm_parallel_openmp(const double* A, const double* B, int M, int N, int K, int num_threads);
+double* dgemm_parallel_openmp(const double* A, const double* B, int M, int N, int K);
 
 /**
  * @brief Computa o produto de matrizes C = A * B usando paralelização com MPI.
