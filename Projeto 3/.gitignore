@@ -61,3 +61,7 @@ data/
 *.aux
 *.fdb_latexmk
 *fls
+*.log
+*.out
+*.toc
+*.synctex.gz
