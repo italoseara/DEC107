@@ -65,3 +65,4 @@ data/
 *.out
 *.toc
 *.synctex.gz
+.vscode/
