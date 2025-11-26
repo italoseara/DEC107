@@ -56,4 +56,8 @@ dkms.conf
 
 build/
 data/
-.vscode/
+
+#latex 
+*.aux
+*.fdb_latexmk
+*fls
