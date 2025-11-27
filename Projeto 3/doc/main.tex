@@ -1,0 +1,368 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{graphicx}
+\lstset{ 
+	basicstyle=\ttfamily\small, % Fonte monoespaçada
+	numbers=left, % Numeração das linhas
+	numberstyle=\tiny\color{gray}, keywordstyle=\color{blue}, % Cor das palavras-chave
+	commentstyle=\color{green!50!black}, % Cor dos comentários
+	stringstyle=\color{red}, % Cor das strings
+	breaklines=true, % Quebra automática de linha
+	tabsize=2 % Tamanho do tab
+}
+
+% Configurações de página
+\geometry{margin=2.5cm}
+\onehalfspacing{}
+
+% Configurações do hyperref
+\hypersetup{
+	colorlinks=true,
+	linkcolor=black,
+	filecolor=magenta,
+	urlcolor=blue,
+	citecolor=blue
+}
+
+\begin{document}
+	\begin{titlepage}
+		\centering
+		\vspace*{2cm}
+		
+		{\huge\bfseries Projeto 3 --- DGEMM Sequencial e Paralela para processamento em GPUs com CUDA\par}
+		\vspace{1.5cm}
+		
+		{\Large \textbf{Autores:}\\ Italo Santana Seara\\ Wilson Santos Silva Filho\\ }
+		
+		\vspace{2cm}
+		
+		{\large \textbf{Disciplina:} DEC107 — Processamento Paralelo\\ \textbf{Professor:} Esbel Tomas Valero Orellana\\ \textbf{Data:} \today\\ }
+		
+		\vfill
+	\end{titlepage}
+	
+	\tableofcontents
+	
+	\newpage
+	\section{Introdução}\label{sec:introducao}
+	
+	A multiplicação de matrizes é uma operação fundamental em diversas áreas da computação científica e engenharia, presente em aplicações que vão desde álgebra linear numérica até aprendizagem de máquina e simulações físicas. Neste projeto, focamos na versão de precisão dupla da multiplicação geral de matrizes (DGEMM), cujo problema pode ser formalizado como: dado $A\in\mathbb{R}^{m\times k}$ e $B\in\mathbb{R}^{k\times n}$, calcular $C=AB$, onde
+	
+	\[
+	C_{ij}=\sum_{t=1}^{k} A_{it}\,B_{tj}, \qquad 1 \le i \le m, \;1 \le j \le n.
+	\]
+	
+	A complexidade aritmética desta operação cresce como $\mathcal{O}(mkn)$ e, para matrizes quadradas de ordem $N$, como $\mathcal{O}(N^{3})$, o que torna essencial a exploração de paralelismo para resolver instâncias de grande porte de forma eficiente.
+	
+	No Projeto 1 foram implementadas versões sequenciais e paralelas (por memória compartilhada, com OpenMP) da DGEMM.\@ No Projeto 2, foi implementado a versão com o MPI, onde o estudo do paralelismo migrando o algorítimo para modelo de memória distribuída. No presente projeto 3, daremos continuidade ao estudo de processamento paralelo implementando a DGEMM em GPUs (General-Purpose computing on Graphics Processing Units) utilizando o alto poder de processamento desses \textit{devices}.\@
+	
+	Este projeto tem como objetivos específicos:
+	\begin{itemize}
+		\item Implementar uma versão paralela de DGEMM utilizando a programação de GPUs para Nvidia (CUDA) e utilizar algumas rotinas  (por exemplo, \texttt{cudaMemoryCopy}, implementar estrutura hierárquica de memória (\texttt{\_\_global\_\_, \_\_device\_\_, \_\_host\_\_ e \_\_shared\_\_}).
+		\item Comparar o resultado da versão CUDA com o resultado da versão sequencial e validar a corretude dos resultados através do cálculo da diferença relativa máxima entre as matrizes resultantes.
+		\item Medir e analisar desempenho (tempo total, \emph{speedup} e eficiência) em várias configurações de blocos e threds e tamanhos de matrizes, e comparar os resultados com os obtidos em ambiente de memória compartilhada (OpenMP, MPI).
+		\item Comparar os resultados com os projetos 1 e 2, apresentando discussões sobre o ganho obtido com o uso da GPU e a diferença de escalabilidade entre os modelos de paralelismo
+	\end{itemize}
+	
+	
+	\newpage
+	\section{Metodologia}\label{sec:metodologia}
+	
+	Nesta seção, detalhamos a implementação da multiplicação de matrizes DGEMM em suas versões sequencial e paralela utilizando programação CUDA, bem como a metodologia adotada para medir desempenho e validar diferença relativa máxima.
+	
+	\subsection{Implementação Sequencial}
+	
+	A implementação sequencial da DGEMM utiliza a versão otimizada do Projeto 1, que emprega blocos para melhorar a localidade de dados. As matrizes são armazenadas em vetores unidimensionais (\textit{row-major order}) para garantir um acesso eficiente à memória. A função principal responsável pela multiplicação é apresentada no repositório do projeto.\footnotemark[1]
+	
+	Esta implementação serve como referência para comparação de desempenho com a versão paralela da GPU com CUDA.
+	
+	\subsection{Implementação Paralela com OpenMP}
+	
+	A versão paralela com OpenMP, desenvolvida no Projeto 1, utiliza diretivas de paralelismo para distribuir o trabalho entre múltiplas threads em um ambiente de memória compartilhada. A decomposição por blocos é mantida, e a paralelização é aplicada principalmente nos loops externos da multiplicação de matrizes. 
+	
+	Esta implementação também está disponível no repositório do projeto.\footnotemark[1]
+
+	\footnotetext[1]{Link para as implementações: \url{https://github.com/italoseara/DEC107/blob/main/Projeto 3/src/dgemm_cuda.cu}}
+	
+	\subsection{Implementação Paralela com MPI}
+	
+	A versão paralela da DGEMM desenvolvida utilizando o padrão MPI no Projeto 2, que permite a comunicação entre processos em um ambiente de memória distribuída, utilizou-se de estratégias que envolve e adota a decomposição das matrizes por blocos, onde cada processo é responsável por calcular uma parte da matriz resultado $C$. Esta implementação também está disponível no repositório do projeto.
+	
+	\subsection{Implementação Paralela para GPUs com CUDA}
+	
+	A versão paralela da DGEMM foi desenvolvida utilizando a programação para GPUs da Nvidia, utilizando CUDA. A GPU possui milhares de núcleos, organizar quem faz o quê é crucial. As GPUS usam um sistema de coordenadas onde a Thread: A menor unidade de execução. Cada thread roda o Kernel. O Block (Bloco): Um grupo de threads que podem compartilhar memória rápida (Shared Memory) e se sincronizar e a Grid (Grade): O conjunto total de blocos que executam o kernel.
+	A implementação completa está disponível no repositório do projeto.\footnotemark[1]
+	
+	\footnotetext[1]{Link para as implementações: \url{https://github.com/italoseara/DEC107/blob/main/Projeto 3/src/dgemm_cuda.cu}}
+
+	\subsubsection{Decorators \texttt{\_\_stricted\_\_ e \_\_global\_\_}}
+
+	As funções de kernel CUDA são decoradas com o especificador \texttt{\_\_global\_\_}, indicando que são executadas na GPU e chamadas a partir do host (CPU). Além disso, o uso do decorador \texttt{\_\_restrict\_\_} nos ponteiros de entrada e saída informa ao compilador que esses ponteiros não se sobrepõem, permitindo otimizações adicionais durante a compilação.
+
+	\subsubsection{Organização de Threads e Blocos}
+	
+	O código utiliza uma estratégia de decomposição de domínio em 2D, mapeando threads diretamente para as coordenadas da matriz de resultado $C$. 
+	Estrutura de Bloco (dim3 block): O kernel é configurado com blocos quadrados de tamanho tile x tile (que pode ser selecionado pelo usuário, até $32 \times 32$, totalizando 1024 threads por bloco, que é o máximo permitido na maioria das arquiteturas CUDA).
+	Estrutura de Grade (dim3 grid): A grade é calculada para cobrir as dimensões da matriz $C$ ($M$ linhas por $N$ colunas). O número de blocos é arredondado para cima $((N + \text{tile} - 1) / \text{tile})$ para garantir que matrizes cujas dimensões não sejam múltiplos de 32 sejam processadas corretamente.
+	Mapeamento: threadIdx.x mapeia para a coluna dentro do bloco e threadIdx.y mapeia para a linha dentro do bloco. A coordenada global $(\text{row}, \text{col})$ é calculada como:
+	
+	\[
+	\text{row} = \text{blockIdx.y} \times \text{blockDim.y} + \text{threadIdx.y}
+	\]
+	\[
+	\text{col} = \text{blockIdx.x} \times \text{blockDim.x} + \text{threadIdx.x}
+	\]
+	
+	\subsubsection{Diferença entre os Kernels Básico e com Memória Compartilhada}
+
+	A diferença crítica entre as funções \texttt{dgemm\_kernel\_basic} e \texttt{dgemm\_kerne\_shared} é o uso da hierarquia de memória para contornar o gargalo de largura de banda da memória global (DRAM).
+	A Declaração: \texttt{extern \_\_shared\_\_ double smem[];} aloca memória rápida on-chip (L1/Shared), acessível por todas as threads do mesmo bloco.
+	Utilizamos o uso de carregamento cooperativo: O código divide as matrizes $A$ e $B$ em sub-blocos (tiles) quadrados de tamanho $T \times T$. Todas as threads do bloco colaboram para carregar um tile de $A$ e um tile de $B$ da memória global (lenta) para a memória compartilhada (rápida). O comando \_\_syncthreads() garante que todo o tile esteja carregado na memória compartilhada antes que qualquer thread comece a calcular.
+	Do Cálculo: Uma vez que os dados estão na smem, as threads calculam o produto escalar parcial lendo apenas da memória compartilhada. Em vez de fazer $2 \times K$ leituras da memória global por thread (como no kernel básico), cada elemento é lido da memória global apenas uma vez por tile e reutilizado $T$ vezes.
+	
+	\subsubsection{Análise da Sobreposição de Computação e Comunicação}
+
+	Percebemos que não há sobreposição de computação e comunicação pois: As chamadas \texttt{cudaMemcpy} por padrão são bloqueantes, ou seja, a CPU espera a conclusão da transferência de dados antes de prosseguir para a próxima instrução.
+	Então, a GPU fica ociosa durante a transferencia de dados via PCLe, e o PCLe fica ocioso durante o calculo no Kernel.
+	Para implementações futuras, podemos explorar o uso de \textit{CUDA Streams} para permitir a sobreposição de computação e comunicação, onde múltiplas operações de transferência de dados e execução de kernels podem ser enfileiradas e executadas de forma assíncrona.
+
+	\subsection{Validação da Correção dos Resultados}
+	
+	Vamos validar a versão sequencial comparando os resultados obtidos com a função \texttt{...}. A implementação sequencial (rodando na CPU) serve como a referência (ground truth). Ela é, por definição, a maneira mais simples e verificável de calcular o resultado (neste caso, a multiplicação de matrizes).\@
+	
+	A diferença relativa máxima entre as duas matrizes de resultado $C_{\text{seq}}$ (sequencial) e $C_{\text{cuda}}$ (CUDA) é calculada como:
+
+	\begin{equation}
+		\Delta = \max_{i,j} \frac{|C_{\text{seq}}(i,j) - C_{\text{cuda}}(i,j)|}{|C_{\text{seq}}(i,j)| + \epsilon}
+	\end{equation}
+	onde $\epsilon = 10^{-12}$ evita divisões por zero. 
+	
+	Considerar corretas as implementações cuja diferença máxima seja menor que um limite aceitável (por exemplo, $10^{-8}$).
+	
+	\subsection{Descrição do hardware utilizado nos testes}
+	
+	Os testes foram realizados em uma máquina com as seguintes especificações:
+	\begin{itemize}
+		\item \textbf{Processador:} Ryzen 7 5700G (8 núcleos)
+		\item \textbf{GPU:} NVIDIA GeForce RTX 4060 (8GB VRAM, 16GB Shared, 3072 CUDA Cores)
+		\item \textbf{Memória RAM:} 32 GB
+		\item \textbf{Sistema Operacional:} Windows 11 + WSL 2.4.10.0 (Ubuntu 24.04.2 LTS)
+		\item \textbf{Compilador:} GCC 13.3.0 e NVCC 13.0.88
+	\end{itemize}
+	
+	\subsection{Métricas utilizadas para avaliação}
+	
+	Usaremos as seguintes métricas para definir e comparar as implementações:
+	
+	\subsubsection{Tempo de Execução}
+	
+	Medido em segundos, é o tempo total gasto para completar a multiplicação das matrizes. Não inclui o tempo de inicialização ou finalização do programa, apenas o tempo gasto na execução da função de multiplicação.
+	\[
+	T = T_{end} - T_{start}
+	\]
+	Onde:
+	\begin{itemize}
+		\item $T$ é o tempo de execução.
+		\item $T_{start}$ é o tempo registrado no início da execução da função.
+		\item $T_{end}$ é o tempo registrado ao final da execução da função.
+	\end{itemize}
+	
+	
+	Foi utilizado um script em python para automatizar a execução dos testes e coletar os tempos. O script executa cada versão múltiplas vezes com diferentes entradas para obter uma média dos tempos, calcula as métricas de desempenho e gera um relatório com os resultados, que foram utilizados para criar os gráficos apresentados na seção de resultados.
+	
+	\subsubsection{Speedup}
+	Mede o ganho de desempenho da versão paralela em relação à sequencial.
+	\[
+	S_{p} = \frac{T_{s}}{T_{p}}
+	\]
+	Onde:
+	\begin{itemize}
+		\item $S_{p}$ é o speedup com $p$ processadores/threads.
+		
+		\item $T_{s}$ é o tempo de execução da versão sequencial.
+		
+		\item $T_{p}$ é o tempo de execução da versão paralela com $p$ processadores/threads.
+	\end{itemize}
+	
+	\subsubsection{Eficiência}
+	Mede quão bem os recursos de processamento estão sendo utilizados pela versão paralela. Onde 1 é a eficiência ideal (100\%).
+	\[
+	E_{p} = \frac{S_{p}}{p}= \frac{T_{s}}{p \cdot T_{p}}
+	\]
+	Onde:
+	\begin{itemize}
+		\item $E_{p}$ é a eficiência com $p$ processadores/threads. Varia entre 0 e 1.
+		
+		\item $S_{p}$ é o speedup com $p$ processadores/threads.
+		
+		\item $p$ é o número de processadores/threads.
+		
+		\item $T_{s}$ é o tempo de execução da versão sequencial.
+		
+		\item $T_{p}$ é o tempo de execução da versão paralela com $p$ processadores/threads.
+	\end{itemize}
+	
+	\newpage
+	\section{Resultados}\label{sec:resultados}
+	
+	Nesta seção, apresentamos os resultados obtidos a partir dos testes realizados nas implementações sequencial, paralela com CUDA da multiplicação de matrizes DGEMM. O resultado vai ser comparado com versões paralelizadas utilizando OpenMP e MPI desenvolvidas nos projetos anteriores.
+	
+	\subsection{Tempo de execução}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.9\textwidth]{img/execution-time-openmp.png}
+		\caption{Tempo de execução (OpenMP)}\label{fig:tempo_execucao_omp}
+	\end{figure}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.9\textwidth]{img/execution-time-mpi.png}
+		\caption{Tempo de execução (MPI)}\label{fig:tempo_execucao_mpi}
+	\end{figure}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.9\textwidth]{img/execution-time-cuda.png}
+		\caption{Tempo de execução (CUDA - Basic)}\label{fig:tempo_execucao_cuda}
+	\end{figure}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.9\textwidth]{img/execution-time-cuda-shared.png}
+		\caption{Tempo de execução (CUDA - Shared)}\label{fig:tempo_execucao_cuda_optimized}
+	\end{figure}
+
+	A Figura~\ref{fig:tempo_execucao_cuda} mostra o tempo de execução da implementação básica com CUDA, que apresenta um desempenho significativamente melhor em comparação com as versões de CPU (OpenMP e MPI), especialmente para matrizes maiores. A Figura~\ref{fig:tempo_execucao_cuda_optimized} mostra o tempo de execução da versão otimizada com memória compartilhada,
+	o que é inesperado é que o tempo de execução da versão shared é pior que a CUDA-Basic, isso se deve a arquitetura da GPU utilizada (RTX 4060) que possui uma hierarquia de cache eficiente (L2 de grande capacidade) que mitiga os gargalos de acesso à memória global automaticamente, tornando a sobrecarga de gerenciamento manual da memória compartilhada desvantajosa neste cenário específico.
+	
+	\begin{figure}[H]
+		\centering
+	\includegraphics[width=0.9\textwidth]{img/speedup-openmp.png}
+		\caption{Speedup (OpenMP)}\label{fig:speedup_omp}
+	\end{figure}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.9\textwidth]{img/speedup-mpi.png}
+		\caption{Speedup (MPI)}\label{fig:speedup_mpi}
+	\end{figure}
+		\begin{figure}[H]
+		\centering
+			\includegraphics[width=0.9\textwidth]{img/speedup-cuda.png}
+		\caption{Speedup (CUDA - Basic)}\label{fig:speedup_cuda}
+	\end{figure}
+	\begin{figure}[H]
+		\centering
+			\includegraphics[width=0.9\textwidth]{img/speedup-cuda-shared.png}
+		\caption{Speedup (CUDA - Shared)}\label{fig:speedup_cuda_optimized}	
+	\end{figure}
+	A Figura~\ref{fig:speedup_cuda} mostra o speedup da implementação básica com CUDA, que alcança um speedup significativo em comparação com as versões de CPU (OpenMP e MPI), especialmente para matrizes maiores.
+	
+	O mesmo pode ser observado na Figura~\ref{fig:speedup_cuda_optimized}. Porém, assim como no tempo de execução, o speedup da versão shared alcança um desempenho inferiror ao da versão básica, o que é inesperado.
+
+	Podemos perceber que a versão CUDA em todos os casos supera significativamente as implementações de CPU (OpenMP e MPI), evidenciando o poder do paralelismo massivo e das otimizações específicas para GPUs.
+
+	\subsection{Eficiência}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.9\textwidth]{img/efficiency-openmp.png}
+		\caption{Eficiência (OpenMP)}\label{fig:eficiencia_omp}
+	\end{figure}
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.9\textwidth]{img/efficiency-mpi.png}
+		\caption{Eficiência (MPI)}\label{fig:eficiencia_mpi}
+	\end{figure}
+	\begin{figure}[H]
+		\centering
+			\includegraphics[width=0.9\textwidth]{img/efficiency-cuda.png}
+		\caption{Eficiência (CUDA - Basic)}\label{fig:eficiencia_cuda}
+	\end{figure}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.9\textwidth]{img/efficiency-cuda-shared.png}
+		\caption{Eficiência (CUDA - Shared)}\label{fig:eficiencia_cuda_optimized}
+	\end{figure}
+
+	As Figuras~\ref{fig:eficiencia_cuda} e~\ref{fig:eficiencia_cuda_optimized} mostram a eficiência das implementações com CUDA (básica e otimizada com memória compartilhada). É possível notar que o valor da eficiência excede 1, o que não deveria ser possível. Isso ocorre porque o cálculo da eficiência é baseado no número de threads (limitado a 1024 por bloco), enquanto a GPU possui milhares de núcleos, o que distorce a métrica tradicional de eficiência quando aplicada a arquiteturas massivamente paralelas como GPUs.
+
+	\subsection{Testando os limites da GPU}
+	A versao basica era superior a versão shared na maioria dos testes, 
+	então decidimos testar a versao shared com tiles de 32x32 (1024 threads por bloco) e a versão básica para tentar maximizar o uso da memoria e ver se haveria uma melhora significativa.
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.9\textwidth]{img/execution-time-cuda-32tile.png}
+		\caption{Tempo de execução (CUDA - 32 Tiles)}\label{fig:tempo_execucao_cuda_32tile}
+	\end{figure}
+
+	A figura abaixo mostra o gerenciador de tarefas do Windows, onde podemos ver o uso da GPU atingindo seu limite de quase 100\% de uso e a VRAM sendo quase totalmente utilizada (8GB de 8GB).
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.9\textwidth]{img/limits.png}
+		\caption{Eficiência (CUDA - 32 Tiles)}\label{fig:limites de GPU}
+	\end{figure}
+
+	Ainda assim, o tempo de execução da versão shared com 32 tiles não superou a versão básica.
+	
+	\newpage
+	\section{Discussão}\label{sec:discussao}
+	
+	Nesta seção, discutimos os resultados obtidos nas implementações sequencial, paralela com cuda da multiplicação de matrizes DGEMM.\@ Analisamos o desempenho, a escalabilidade e as limitações de cada abordagem.
+	
+	\subsection{Análise de Desempenho}
+	
+	A implementação com CUDA apresentou um desempenho superior em comparação com a implementação com MPI e OpenMP para Eficiência, speedup e tempo de execucao. Isso se deve ao fato de que as GPUs são projetadas para lidar com operações paralelas massivas, aproveitando milhares de núcleos para processar dados simultaneamente. A arquitetura da GPU permite um alto grau de paralelismo, o que é ideal para operações como a multiplicação de matrizes, onde muitas operações independentes podem ser realizadas em paralelo.
+
+	O inesperado desempenho inferior da versão com memória compartilhada em relação à versão básica pode ser atribuído à arquitetura específica da GPU utilizada (RTX 4060). A hierarquia de cache eficiente (L2 de grande capacidade) da arquitetura Ada Lovelace mitiga os gargalos de acesso à memória global automaticamente, tornando a sobrecarga de gerenciamento manual da memória compartilhada desvantajosa neste cenário específico.
+
+	\subsection{Escalabilidade}
+	
+	A implementação com CUDA demonstrou uma boa escalabilidade com o aumento do tamanho das matrizes. O speedup aumentou de forma consistente com o aumento do número de threads, embora a eficiência tenha diminuído ligeiramente devido à sobrecarga de comunicação.
+
+	\subsection{Limitações}
+	
+	Uma limitação observada foi a necessidade de usar \texttt{extern ``C''} para evitar a name mangling do C++, que causava erros de link na compilação.
+
+	\newpage
+	\section{Conclusão}\label{sec:conclusao}
+	
+	Neste relatório, apresentamos a implementação e análise de desempenho da multiplicação de matrizes DGEMM utilizando GPUs com CUDA, comparando os resultados com as abordagens de CPU (Sequencial, OpenMP e MPI) desenvolvidas nos projetos anteriores.
+		
+	Os resultados demonstraram que a utilização de GPUs oferece um ganho de desempenho expressivo em relação às implementações baseadas em CPU, especialmente para matrizes de grande porte, validando a eficácia do paralelismo massivo para operações de álgebra linear densa. Um achado notável foi o comportamento da versão CUDA com memória compartilhada, que, contrariando a expectativa teórica inicial, obteve desempenho inferior à versão básica na GPU utilizada (RTX 4060). Atribuímos esse fenômeno à eficiência da hierarquia de cache moderna (L2 de grande capacidade) da arquitetura Ada Lovelace, que mitigou os gargalos de acesso à memória global automaticamente, tornando a sobrecarga de gerenciamento manual da memória compartilhada desvantajosa neste cenário específico.
+	
+	Em trabalhos futuros, sugere-se a exploração de \textit{CUDA Streams} para sobrepor a transferência de dados (PCIe) com a computação, bem como o uso de bibliotecas altamente otimizadas como cuBLAS ou a utilização de Tensor Cores para maximizar ainda mais o \textit{throughput} da GPU.
+
+	\newpage
+	\begin{thebibliography}{9}
+		\raggedright{}
+		\bibitem{knuthwebsite} Orellana, E., \texttt{Materiais de slides vistos em aula}
+		
+		\bibitem{knuthwebsite} OpenMP, Disponível em: \url{https://www.openmp.org/wp-content/uploads/OpenMP-RefGuide-6.0-OMP60SC24-web.pdf}. Acesso em: 22 de Setembro de 2025.
+		
+		\bibitem{knuthwebsite} Open MPI, Disponível em: \url{https://www.open-mpi.org/doc/v4.1/}. Acesso em: 11 de Novembro de 2025.
+
+		\bibitem{knuthwebsite} NVIDIA CUDA C Programming Guide, Disponível em: \url{https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html}. Acesso em: 24 de Novembro de 2025.
+		
+		\bibitem{knuthwebsite} Wikipedia, Multiplicação de matrizes, Disponível em: \url{https://en.wikipedia.org/wiki/Matrix\_multiplication}. Acesso em: 23 de Setembro de 2025.
+		
+		\bibitem{knuthwebsite} VSP-BERLIN, Speedup and Efficiency, Disponível em: \url{https://svn.vsp.tu-berlin.de/repos/public-svn/publications/kn-old/strc/html/node9.html}. Acesso em: 23 de Setembro de 2025.
+		
+		\bibitem{knuthwebsite} Wikipedia, Loop nest optiomization, Disponível em: \url{https://en.wikipedia.org/wiki/Loop\_nest\_optimization}. Acesso em: 23 de Setembro de 2025.
+
+	\end{thebibliography}
+	
+\end{document}
