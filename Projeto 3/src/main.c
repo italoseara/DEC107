@@ -2,7 +2,7 @@
  * Executor simples para variantes de DGEMM (serial, openmp, mpi)
  * 
  * Uso (prefira via Makefile):
- *  ./dgemm --alg [serial|openmp|mpi] --threads <n> --m <M> --n <N> --k <K>
+ *  ./dgemm --alg [serial|openmp|mpi|cuda] --threads N --m M --n N --k K [--tile T] [--variant shared|basic]
  * 
  * Imprime apenas o tempo decorrido em segundos no stdout.
  */
@@ -13,10 +13,12 @@
 #include <time.h>
 #include <mpi.h>
 #include <omp.h>
+#include <cuda_runtime.h>
 
 #include "../include/dgemm.h"
 
 typedef enum { ALG_SERIAL = 0, ALG_OPENMP = 1, ALG_MPI = 2, ALG_CUDA = 3 } algorithm_t;
+typedef enum { VARIANT_SHARED = 0, VARIANT_BASIC = 1 } variant_t;
 
 static void* xmalloc(size_t nbytes) {
 	void* p = malloc(nbytes);
@@ -42,7 +44,8 @@ int main(int argc, char** argv) {
 	// Padrões
 	algorithm_t alg = ALG_SERIAL;
 	int threads = 1; // para OpenMP ou como dica de ranks
-	int tile = 32;   // tamanho do tile para CUDA (Option A)
+	int tile = 32;   // tamanho do tile para CUDA (lado do bloco)
+	int variant = VARIANT_SHARED; // padrão: versão com memória compartilhada
 	int M = 512, N = 512, K = 512;
 
 	// Parseia argumentos (parser bem simples)
@@ -69,8 +72,16 @@ int main(int argc, char** argv) {
 		} else if (!strcmp(argv[i], "--tile") && i + 1 < argc) {
 			tile = atoi(argv[++i]);
 			if (tile <= 0) tile = 32;
+		} else if (!strcmp(argv[i], "--variant") && i + 1 < argc) {
+			++i;
+			if (!strcmp(argv[i], "shared")) variant = VARIANT_SHARED;
+			else if (!strcmp(argv[i], "basic")) variant = VARIANT_BASIC;
+			else {
+				fprintf(stderr, "Unknown --variant value: %s (expected shared|basic)\n", argv[i]);
+				return 2;
+			}
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
-			fprintf(stderr, "Usage: %s --alg [serial|openmp|mpi|cuda] --threads N --m M --n N --k K [--tile T]\n", argv[0]);
+			fprintf(stderr, "Usage: %s --alg [serial|openmp|mpi|cuda] --threads N --m M --n N --k K [--tile T] [--variant shared|basic]\n", argv[0]);
 			return 0;
 		} else {
 			fprintf(stderr, "Unknown argument: %s\n", argv[i]);
@@ -122,24 +133,35 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-	// Caminho Serial: medir com clock_gettime; OpenMP: medir com omp_get_wtime
-	double t0 = omp_get_wtime();
-	if (alg == ALG_SERIAL) {
-		C = dgemm_serial(A, B, M, N, K);
-	} else if (alg == ALG_OPENMP) {
-		omp_set_num_threads(threads);
-		C = dgemm_parallel_openmp(A, B, M, N, K);
-	} else if (alg == ALG_CUDA) {
-#ifdef ENABLE_CUDA
-		C = dgemm_parallel_cuda(A, B, M, N, K, tile);
-#else
-		fprintf(stderr, "CUDA selecionado mas compilação sem suporte (ENABLE_CUDA ausente)\n");
-		free(A); free(B);
-		return 3;
-#endif
+	// Medição de tempo: CPU via omp_get_wtime; CUDA via cudaEventElapsedTime
+	if (alg == ALG_CUDA) {
+		cudaEvent_t ev_start, ev_stop;
+		cudaEventCreate(&ev_start);
+		cudaEventCreate(&ev_stop);
+		cudaEventRecord(ev_start, 0);
+		if (variant == VARIANT_SHARED) {
+			C = dgemm_parallel_cuda_shared(A, B, M, N, K, tile);
+		} else {
+			C = dgemm_parallel_cuda_basic(A, B, M, N, K, tile);
+		}
+		cudaEventRecord(ev_stop, 0);
+		cudaEventSynchronize(ev_stop);
+		float ms = 0.0f;
+		cudaEventElapsedTime(&ms, ev_start, ev_stop);
+		elapsed = (double)ms / 1000.0; // converte para segundos
+		cudaEventDestroy(ev_start);
+		cudaEventDestroy(ev_stop);
+	} else {
+		double t0 = omp_get_wtime();
+		if (alg == ALG_SERIAL) {
+			C = dgemm_serial(A, B, M, N, K);
+		} else if (alg == ALG_OPENMP) {
+			omp_set_num_threads(threads);
+			C = dgemm_parallel_openmp(A, B, M, N, K);
+		}
+		double t1 = omp_get_wtime();
+		elapsed = t1 - t0;
 	}
-	double t1 = omp_get_wtime();
-	elapsed = t1 - t0;
 
 	if (!C) {
 		fprintf(stderr, "dgemm returned NULL (allocation or input error)\n");

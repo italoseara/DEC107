@@ -192,51 +192,81 @@ void test_dgemm_parallel_mpi() {
     }
 }
 
-#ifdef ENABLE_CUDA
-    // Teste CUDA (comparar contra versão sequencial)
-    void test_dgemm_parallel_cuda() {
-        const int M = TEST_M, N = TEST_N, K = TEST_K;
-        const size_t size_A = (size_t)M * (size_t)K;
-        const size_t size_B = (size_t)K * (size_t)N;
-        const size_t size_C = (size_t)M * (size_t)N;
+void test_dgemm_parallel_cuda_basic() {
+    const int M = TEST_M, N = TEST_N, K = TEST_K;
+    const size_t size_A = (size_t)M * (size_t)K;
+    const size_t size_B = (size_t)K * (size_t)N;
+    const size_t size_C = (size_t)M * (size_t)N;
 
-        double *A = (double*)malloc(size_A * sizeof(double));
-        double *B = (double*)malloc(size_B * sizeof(double));
-        assert(A && B);
-        memcpy(A, A_init, size_A * sizeof(double));
-        memcpy(B, B_init, size_B * sizeof(double));
+    double *A = (double*)malloc(size_A * sizeof(double));
+    double *B = (double*)malloc(size_B * sizeof(double));
+    assert(A && B);
+    memcpy(A, A_init, size_A * sizeof(double));
+    memcpy(B, B_init, size_B * sizeof(double));
 
-        double *C_seq = dgemm_serial((double*)A, (double*)B, M, N, K);
-        assert(C_seq != NULL);
+    double *C_seq = dgemm_serial((double*)A, (double*)B, M, N, K);
+    assert(C_seq != NULL);
 
-        double *C_cuda = dgemm_parallel_cuda((double*)A, (double*)B, M, N, K);
-        assert(C_cuda != NULL);
+    double *C_cuda = dgemm_parallel_cuda_basic((double*)A, (double*)B, M, N, K, 16);
+    assert(C_cuda != NULL);
 
-        size_t idx = 0;
-        const double eps = 1e-12;
-        const double tol = 1e-9;
-        double delta = max_relative_diff(C_cuda, C_seq, size_C, eps, &idx);
-        if (delta > tol) {
-            fprintf(stderr, "test_dgemm_parallel_cuda failed at index %zu: got %.17g, seq %.17g, rel-diff %.17g\n",
-                    idx, C_cuda[idx], C_seq[idx], delta);
-            assert(0);
-        }
-        free(C_seq);
-        free(C_cuda);
-        free(A);
-        free(B);
-        printf("test_dgemm_parallel_cuda passed.\n");
+    size_t idx = 0;
+    const double eps = 1e-12;
+    const double tol = 1e-9;
+    double delta = max_relative_diff(C_cuda, C_seq, size_C, eps, &idx);
+    if (delta > tol) {
+        fprintf(stderr, "test_dgemm_parallel_cuda_basic failed at index %zu: got %.17g, seq %.17g, rel-diff %.17g\n",
+                idx, C_cuda[idx], C_seq[idx], delta);
+        assert(0);
     }
-#endif
+    free(C_seq);
+    free(C_cuda);
+    free(A);
+    free(B);
+    printf("test_dgemm_parallel_cuda_basic passed.\n");
+}
+
+void test_dgemm_parallel_cuda_shared() {
+    const int M = TEST_M, N = TEST_N, K = TEST_K;
+    const size_t size_A = (size_t)M * (size_t)K;
+    const size_t size_B = (size_t)K * (size_t)N;
+    const size_t size_C = (size_t)M * (size_t)N;
+
+    double *A = (double*)malloc(size_A * sizeof(double));
+    double *B = (double*)malloc(size_B * sizeof(double));
+    assert(A && B);
+    memcpy(A, A_init, size_A * sizeof(double));
+    memcpy(B, B_init, size_B * sizeof(double));
+
+    double *C_seq = dgemm_serial((double*)A, (double*)B, M, N, K);
+    assert(C_seq != NULL);
+
+    double *C_cuda = dgemm_parallel_cuda_shared((double*)A, (double*)B, M, N, K, 16);
+    assert(C_cuda != NULL);
+
+    size_t idx = 0;
+    const double eps = 1e-12;
+    const double tol = 1e-9;
+    double delta = max_relative_diff(C_cuda, C_seq, size_C, eps, &idx);
+    if (delta > tol) {
+        fprintf(stderr, "test_dgemm_parallel_cuda_shared failed at index %zu: got %.17g, seq %.17g, rel-diff %.17g\n",
+                idx, C_cuda[idx], C_seq[idx], delta);
+        assert(0);
+    }
+    free(C_seq);
+    free(C_cuda);
+    free(A);
+    free(B);
+    printf("test_dgemm_parallel_cuda_shared passed.\n");
+}
 
 // Função main para executar os testes
 int main() {
     test_dgemm_serial();
     test_dgemm_parallel_openmp();
     test_dgemm_parallel_mpi();
-#ifdef ENABLE_CUDA
-    test_dgemm_parallel_cuda();
-#endif
+    test_dgemm_parallel_cuda_basic();
+    test_dgemm_parallel_cuda_shared();
 
     int initialized = 0;
     MPI_Initialized(&initialized);

@@ -38,6 +38,8 @@ CUDA_OBJS := $(BUILD_DIR)/dgemm_cuda.o
 CUDA_BASE := $(shell dirname $(shell dirname $(shell which nvcc)))
 BIN  := $(BUILD_DIR)/dgemm
 
+VARIANT := basic
+
 # Tests
 TEST_SRCS := $(SRC_DIR)/dgemm.c tests/test_dgemm.c $(CUDA_SRCS)
 TEST_BIN  := $(BUILD_DIR)/test_dgemm
@@ -50,14 +52,14 @@ $(BUILD_DIR):
 	mkdir -p "$@"
 
 $(BIN): $(SRCS) $(CUDA_OBJS) | $(BUILD_DIR)
-	$(MPICC) $(CFLAGS) -I"$(INC_DIR)" $(filter %.c,$(SRCS)) $(CUDA_OBJS) -o "$@" $(LDFLAGS) -L$(CUDA_BASE)/lib64 $(LDLIBS) -lcudart -lstdc++
+	$(MPICC) $(CFLAGS) -I"$(INC_DIR)" -I"$(CUDA_BASE)/include" $(filter %.c,$(SRCS)) $(CUDA_OBJS) -o "$@" $(LDFLAGS) -L$(CUDA_BASE)/lib64 $(LDLIBS) -lcudart -lstdc++
 
 $(CUDA_OBJS): $(CUDA_SRCS) | $(BUILD_DIR)
 	$(NVCC) -O2 -Xcompiler "-Wall -Wextra -Wno-unused-parameter" -std=c++17 -DCUDA -I"$(INC_DIR)" -c $< -o $@
 
 # Build the unit test binary for DGEMM (links with BLAS for cblas_dgemm)
 $(TEST_BIN): $(TEST_SRCS) $(CUDA_OBJS) | $(BUILD_DIR)
-	$(MPICC) $(CFLAGS) -I"$(INC_DIR)" $(filter %.c,$(TEST_SRCS)) $(CUDA_OBJS) -o "$@" $(LDFLAGS) -L$(CUDA_BASE)/lib64 $(LDLIBS) $(BLAS_LIBS) -lcudart -lstdc++
+	$(MPICC) $(CFLAGS) -I"$(INC_DIR)" -I"$(CUDA_BASE)/include" $(filter %.c,$(TEST_SRCS)) $(CUDA_OBJS) -o "$@" $(LDFLAGS) -L$(CUDA_BASE)/lib64 $(LDLIBS) $(BLAS_LIBS) -lcudart -lstdc++
 
 # Example: make run ALG=openmp THREADS=4 M=1024 N=1024 K=1024
 run: $(BIN)
@@ -65,7 +67,7 @@ run: $(BIN)
 	  mpirun -np $(RANKS) "$(BIN)" --alg mpi --m $(M) --n $(N) --k $(K); \
 	else \
 	  if [ "$(ALG)" = "cuda" ]; then \
-	    "$(BIN)" --alg cuda --m $(M) --n $(N) --k $(K) --tile $(TILE); \
+	    "$(BIN)" --alg cuda --m $(M) --n $(N) --k $(K) --tile $(TILE) --variant $(VARIANT); \
 	  else \
 	    "$(BIN)" --alg $(ALG) --threads $(THREADS) --m $(M) --n $(N) --k $(K); \
 	  fi; \

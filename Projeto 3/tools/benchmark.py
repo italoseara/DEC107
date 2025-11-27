@@ -5,7 +5,7 @@ import csv
 import os
 import shutil
 
-def run_executable_and_time(exe_path: str, algorithm: str, m: int, n: int, k: int, threads: int = 1, ranks: int = 1) -> float:
+def run_executable_and_time(exe_path: str, algorithm: str, m: int, n: int, k: int, threads: int = 1, ranks: int = 1, tile: int = 32, variant: str = "shared") -> float:
     # build common arguments
     cmd = [
         exe_path,
@@ -20,6 +20,8 @@ def run_executable_and_time(exe_path: str, algorithm: str, m: int, n: int, k: in
         if mpiexec is None:
             raise FileNotFoundError("mpirun/mpiexec não encontrado no PATH, mas 'mpi' foi solicitado")
         cmd = [mpiexec, "-np", str(ranks)] + cmd
+    elif algorithm == 'cuda':
+        cmd += ["--tile", str(tile), "--variant", variant]
     else:
         cmd += ["--threads", str(threads)]
 
@@ -64,6 +66,8 @@ def main() -> None:
     parser.add_argument('--sizes', type=str, required=True, help="Tamanhos das matrizes (ex: '128,256,512' ou '128:512:128').")
     parser.add_argument('--threads', type=int, default=1, help="Número de threads a serem usadas.")
     parser.add_argument('--ranks', type=int, default=1, help="Número de ranks MPI a serem usados (apenas para 'mpi').")
+    parser.add_argument('--tile', type=int, default=32, help="Tamanho do tile (apenas para 'cuda').")
+    parser.add_argument('--variant', type=str, default='shared', choices=['shared','basic'], help="Variante CUDA: shared ou basic.")
     parser.add_argument('--reps', type=int, default=5, help='Repetições por tamanho (default 5)')
     parser.add_argument('--output', type=str, required=True, help="Arquivo CSV de saída para os resultados.")
     
@@ -73,7 +77,7 @@ def main() -> None:
         sys.exit(f"Erro: executável '{args.exe}' não encontrado ou não executável.")
     
     sizes = parse_sizes_arg(args.sizes)
-    if args.alg not in ['serial', 'openmp', 'mpi']:
+    if args.alg not in ['serial', 'openmp', 'mpi', 'cuda']:
         sys.exit(f"Erro: algoritmo '{args.alg}' inválido.")
 
     out_file = open(args.output, 'w', newline='')
@@ -88,6 +92,8 @@ def main() -> None:
         print(f"Threads: {args.threads}")
     elif args.alg == "mpi":
         print(f"Ranks MPI: {args.ranks}")
+    elif args.alg == "cuda":
+        print(f"Tile: {args.tile} | Variante: {args.variant}")
     print(f"Repetições por tamanho: {args.reps}")
     print(f"Saída: {args.output}")
 
@@ -98,7 +104,7 @@ def main() -> None:
         for rep in range(args.reps):
             print(f" Rodada {rep+1}/{args.reps} ... ", end='', flush=True)
             try:
-                t = run_executable_and_time(args.exe, args.alg, N, N, N, args.threads, args.ranks)
+                t = run_executable_and_time(args.exe, args.alg, N, N, N, args.threads, args.ranks, args.tile, args.variant)
                 samples.append(t)
                 print(f"{t:.6f} s")
             except subprocess.TimeoutExpired:
