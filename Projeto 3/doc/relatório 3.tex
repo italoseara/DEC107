@@ -297,8 +297,7 @@
 		\caption{Eficiência (CUDA - Shared)}\label{fig:eficiencia_cuda_optimized}
 	\end{figure}
 	As Figuras~\ref{fig:eficiencia_omp} e~\ref{fig:eficiencia_mpi} mostram a eficiência das implementações com OpenMP e MPI, respectivamente. A eficiência tende a diminuir com o aumento do número de threads/processos, o que é esperado devido à sobrecarga de comunicação e sincronização. Não há uma diferença significativa na eficiência entre as duas implementações, embora a implementação com OpenMP apresente uma leve vantagem em alguns casos.
-	Já as Figuras~\ref{fig:eficiencia_cuda} e~\ref{fig:eficiencia_cuda_optimized} mostram a eficiência das implementações com CUDA (básica e otimizada com memória compartilhada). A eficiência da versão shared é razoavelmente maior em alguns casos e pior em outros casos quando as matrizes tendem a crescer
-	, devido à redução do tráfego de memória global.
+	Já as Figuras~\ref{fig:eficiencia_cuda} e~\ref{fig:eficiencia_cuda_optimized} mostram a eficiência das implementações com CUDA (básica e otimizada com memória compartilhada). A eficiência da versão shared é pior em casos quando as matrizes tendem a crescer.
 	Para o grafico da versao estendida de 32 tiles, o teste aplicado para a eficiencia
 
 	\subsection{Testando os limites da GPU}
