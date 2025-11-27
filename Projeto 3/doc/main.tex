@@ -64,12 +64,12 @@
 	\]
 	
 	A complexidade aritmética desta operação cresce como $\mathcal{O}(mkn)$ e, para matrizes quadradas de ordem $N$, como $\mathcal{O}(N^{3})$, o que torna essencial a exploração de paralelismo para resolver instâncias de grande porte de forma eficiente.
-	
-	No Projeto 1 foram implementadas versões sequenciais e paralelas (por memória compartilhada, com OpenMP) da DGEMM.\@ No Projeto 2, foi implementado a versão com o MPI, onde o estudo do paralelismo migrando o algorítimo para modelo de memória distribuída. No presente projeto 3, daremos continuidade ao estudo de processamento paralelo implementando a DGEMM em GPUs (General-Purpose computing on Graphics Processing Units) utilizando o alto poder de processamento desses \textit{devices}.\@
+
+	No Projeto 1 foram implementadas versões sequenciais e paralelas (por memória compartilhada, com OpenMP) da DGEMM.\@ No Projeto 2, foi implementado a versão com o MPI, onde o estudo do paralelismo migrando o algorítimo para modelo de memória distribuída. No presente projeto 3, daremos continuidade ao estudo de processamento paralelo implementando a DGEMM em GPUs utilizando o alto poder de processamento desses \textit{devices}.\@
 	
 	Este projeto tem como objetivos específicos:
 	\begin{itemize}
-		\item Implementar uma versão paralela de DGEMM utilizando a programação de GPUs para Nvidia (CUDA) e utilizar algumas rotinas  (por exemplo, \texttt{cudaMemoryCopy}, implementar estrutura hierárquica de memória (\texttt{\_\_global\_\_, \_\_device\_\_, \_\_host\_\_ e \_\_shared\_\_}).
+		\item Implementar uma versão paralela de DGEMM utilizando a programação de GPUs para Nvidia (CUDA) e utilizar algumas rotinas  (por exemplo, \texttt{cudaMemoryCopy}, implementar estrutura hierárquica de memória (\texttt{\_\_global\_\_, \_\_device\_\_, \_\_host\_\_ e \_\_shared\_\_})).
 		\item Comparar o resultado da versão CUDA com o resultado da versão sequencial e validar a corretude dos resultados através do cálculo da diferença relativa máxima entre as matrizes resultantes.
 		\item Medir e analisar desempenho (tempo total, \emph{speedup} e eficiência) em várias configurações de blocos e threds e tamanhos de matrizes, e comparar os resultados com os obtidos em ambiente de memória compartilhada (OpenMP, MPI).
 		\item Comparar os resultados com os projetos 1 e 2, apresentando discussões sobre o ganho obtido com o uso da GPU e a diferença de escalabilidade entre os modelos de paralelismo
@@ -131,15 +131,13 @@
 	Utilizamos o uso de carregamento cooperativo: O código divide as matrizes $A$ e $B$ em sub-blocos (tiles) quadrados de tamanho $T \times T$. Todas as threads do bloco colaboram para carregar um tile de $A$ e um tile de $B$ da memória global (lenta) para a memória compartilhada (rápida). O comando \_\_syncthreads() garante que todo o tile esteja carregado na memória compartilhada antes que qualquer thread comece a calcular.
 	Do Cálculo: Uma vez que os dados estão na smem, as threads calculam o produto escalar parcial lendo apenas da memória compartilhada. Em vez de fazer $2 \times K$ leituras da memória global por thread (como no kernel básico), cada elemento é lido da memória global apenas uma vez por tile e reutilizado $T$ vezes.
 	
-	\subsubsection{Análise da Sobreposição de Computação e Comunicação}
+	\subsubsection{Sobreposição de Computação e Comunicação}
 
-	Percebemos que não há sobreposição de computação e comunicação pois: As chamadas \texttt{cudaMemcpy} por padrão são bloqueantes, ou seja, a CPU espera a conclusão da transferência de dados antes de prosseguir para a próxima instrução.
-	Então, a GPU fica ociosa durante a transferencia de dados via PCLe, e o PCLe fica ocioso durante o calculo no Kernel.
-	Para implementações futuras, podemos explorar o uso de \textit{CUDA Streams} para permitir a sobreposição de computação e comunicação, onde múltiplas operações de transferência de dados e execução de kernels podem ser enfileiradas e executadas de forma assíncrona.
+	Não há sobreposição de computação e comunicação na implementação atual, pois as chamadas \texttt{cudaMemcpy} são bloqueantes por padrão. Isso significa que a CPU aguarda a conclusão da transferência de dados entre a memória do host e a memória da GPU antes de prosseguir para a próxima instrução. Como resultado, durante a transferência de dados via PCIe, a GPU permanece ociosa, e durante a execução do kernel na GPU, o barramento PCIe também fica ocioso.
 
 	\subsection{Validação da Correção dos Resultados}
 	
-	Vamos validar a versão sequencial comparando os resultados obtidos com a função \texttt{...}. A implementação sequencial (rodando na CPU) serve como a referência (ground truth). Ela é, por definição, a maneira mais simples e verificável de calcular o resultado (neste caso, a multiplicação de matrizes).\@
+	Vamos validar a versão sequencial comparando os resultados obtidos com a função \texttt{\ldots}. A implementação sequencial (rodando na CPU) serve como a referência (ground truth). Ela é, por definição, a maneira mais simples e verificável de calcular o resultado (neste caso, a multiplicação de matrizes).
 	
 	A diferença relativa máxima entre as duas matrizes de resultado $C_{\text{seq}}$ (sequencial) e $C_{\text{cuda}}$ (CUDA) é calculada como:
 
@@ -355,7 +353,7 @@
 		
 		\bibitem{knuthwebsite} Open MPI, Disponível em: \url{https://www.open-mpi.org/doc/v4.1/}. Acesso em: 11 de Novembro de 2025.
 
-		\bibitem{knuthwebsite} NVIDIA CUDA C Programming Guide, Disponível em: \url{https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html}. Acesso em: 24 de Novembro de 2025.
+		\bibitem{knuthwebsite} NVIDIA CUDA C Programming Guide, Disponível em: \url{https://docs.nvidia.com/cuda/}. Acesso em: 24 de Novembro de 2025.
 		
 		\bibitem{knuthwebsite} Wikipedia, Multiplicação de matrizes, Disponível em: \url{https://en.wikipedia.org/wiki/Matrix\_multiplication}. Acesso em: 23 de Setembro de 2025.
 		
