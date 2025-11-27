@@ -102,6 +102,10 @@
 	A versão paralela da DGEMM foi desenvolvida utilizando a programação para GPGPUs da Nvidia, utilizando CUDA. A GPU possui milhares de núcleos, organizar quem faz o quê é crucial. As GPUS usam um sistema de coordenadas onde a Thread: A menor unidade de execução. Cada thread roda o Kernel. O Block (Bloco): Um grupo de threads que podem compartilhar memória rápida (Shared Memory) e se sincronizar e a Grid (Grade): O conjunto total de blocos que executam o kernel.
 	A implementação completa está disponível no repositório do projeto.\footnotemark[1]
 	
+
+	\subsubsection{Decorators \texttt{\_\_stricted\_\_ e \_\_global\_\_}}
+
+	As funções de kernel CUDA são decoradas com o especificador \texttt{\_\_global\_\_}, indicando que são executadas na GPU e chamadas a partir do host (CPU). Além disso, o uso do decorador \texttt{\_\_restrict\_\_} nos ponteiros de entrada e saída informa ao compilador que esses ponteiros não se sobrepõem, permitindo otimizações adicionais durante a compilação.
 	\subsubsection{Organização de Threads e Blocos}
 	
 	O código utiliza uma estratégia de decomposição de domínio em 2D, mapeando threads diretamente para as coordenadas da matriz de resultado $C$. 
@@ -134,7 +138,8 @@
 	
 	Vamos validar a versão sequencial comparando os resultados obtidos com a função \texttt{...}. A implementação sequencial (rodando na CPU) serve como a referência (ground truth). Ela é, por definição, a maneira mais simples e verificável de calcular o resultado (neste caso, a multiplicação de matrizes).\@
 	
-	REVISAR A corretude da implementação paralela com CUDA foi realizada comparando o resultado obtido com o da versão sequencial, calculando a diferença relativa máxima entre os elementos das matrizes resultantes, utilizando uma abordagem que evita divisão por zero. A fórmula utilizada foi:
+	A diferença relativa máxima entre as duas matrizes de resultado $C_{\text{seq}}$ (sequencial) e $C_{\text{cuda}}$ (CUDA) é calculada como:
+
 	\begin{equation}
 		\Delta = \max_{i,j} \frac{|C_{\text{seq}}(i,j) - C_{\text{cuda}}(i,j)|}{|C_{\text{seq}}(i,j)| + \epsilon}
 	\end{equation}
@@ -147,10 +152,11 @@
 	Os testes foram realizados em uma máquina com as seguintes especificações:
 	\begin{itemize}
 		\item \textbf{Processador:} Ryzen 7 5700G (8 núcleos)
+		\item \textbf{GPU:} NVIDIA GeForce RTX 3060 (12GB VRAM, 3584 CUDA Cores, Arquitetura Ampere)
 		\item \textbf{Memória RAM:} 32 GB
 		\item \textbf{Sistema Operacional:} Windows 11 + WSL 2.4.10.0 (Ubuntu 24.04.2 LTS)
 		\item \textbf{Compilador:} GCC 13.3.0
-		\item \textbf{GPU}: 
+		\item \textbf{GPU:} NVIDIA GeForce RTX 4060 (Dedicated GPU memory 8GB, Shared GPU memory 16GB, CUDA Cores 3072, Architecture Ada Lovelace)
 	\end{itemize}
 	
 	\subsection{Métricas utilizadas para avaliação}
@@ -170,7 +176,7 @@
 		\item $T_{end}$ é o tempo registrado ao final da execução da função.
 	\end{itemize}
 	
-	O tempo total de execução será medido utilizando a função \texttt{DESCREVER FUNCAO AQUI...} para a versão MPI, e \texttt{DESCREVER FUNCAO AQUI....} para a versão CUDA e para a versão sequencial.
+	O tempo total de execução será medido utilizando a função \texttt{DESCREVER FUNCAO AQUI...} para a versão sequencial, e \texttt{DESCREVER FUNCAO AQUI....} para a versão CUDA.
 	
 	Foi utilizado um script em python para automatizar a execução dos testes e coletar os tempos. O script executa cada versão múltiplas vezes com diferentes entradas para obter uma média dos tempos, calcula as métricas de desempenho e gera um relatório com os resultados, que foram utilizados para criar os gráficos apresentados na seção de resultados.
 	
@@ -209,7 +215,8 @@
 	\newpage
 	\section{Resultados}\label{sec:resultados}
 	
-	Nesta seção, apresentamos os resultados obtidos a partir dos testes realizados nas implementações sequencial, paralela com CUDA da multiplicação de matrizes DGEMM. O resultado vai ser comparado com versões paralelizadas utilizando OpenMP e MPI\@ Os resultados incluem a validação de corretude, tabelas e gráficos de desempenho, bem como cálculos de \emph{speedup} e eficiência.
+	Nesta seção, apresentamos os resultados obtidos a partir dos testes realizados nas implementações sequencial, paralela com CUDA da multiplicação de matrizes DGEMM. O resultado vai ser comparado com versões paralelizadas utilizando OpenMP e MPI\@ 
+	Os resultados incluem a validação de corretude - Diferença relativa maxima, tabelas e gráficos de desempenho, bem como cálculos de \emph{speedup} e eficiência.
 	
 	\subsection{Tempo de execução}
 	
@@ -276,12 +283,12 @@
 	\newpage
 	\section{Discussão}\label{sec:discussao}
 	
-	Nesta seção, discutimos os resultados obtidos nas implementações sequencial, paralela com cuda da multiplicação de matrizes DGEMM.\@ Analisamos o desempenho, a escalabilidade e as limitações de cada abordagemx.
+	Nesta seção, discutimos os resultados obtidos nas implementações sequencial, paralela com cuda da multiplicação de matrizes DGEMM.\@ Analisamos o desempenho, a escalabilidade e as limitações de cada abordagem.
 	
 	\subsection{Análise de Desempenho}
 	
-	A implementação com OpenMP apresentou um desempenho superior em comparação com a implementação com MPI para o mesmo número de threads/processos. Isso pode ser atribuído à menor sobrecarga de comunicação no modelo de memória compartilhada utilizado pelo OpenMP, em contraste com o modelo de memória distribuída do MPI, que requer troca de mensagens entre processos.
-	
+	A implementação com CUDA apresentou um desempenho superior em comparação com a implementação com MPI e OpenMP para o mesmo número de threads/processos. Isso pode ser atribuído à menor sobrecarga de comunicação no modelo de memória compartilhada utilizado pelo OpenMP, em contraste com o modelo de memória distribuída do MPI, que requer troca de mensagens entre processos.
+
 	\subsection{Escalabilidade}
 	
 	Ambas as implementações demonstraram boa escalabilidade com o aumento do número de threads/processos. No entanto, a eficiência diminuiu à medida que o número de threads/processos aumentou, indicando que a sobrecarga de comunicação e sincronização começa a impactar negativamente o desempenho em configurações com muitos processos.
