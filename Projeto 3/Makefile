@@ -15,7 +15,7 @@ TILE ?= 32
 
 ##### Compiler and flags
 MPICC   ?= mpicc
-CFLAGS  ?= -O2 -Wall -Wextra -Wno-unused-parameter -std=c11 -fopenmp
+CFLAGS  ?= -O3 -Wall -Wextra -Wno-unused-parameter -std=c11 -fopenmp
 LDFLAGS ?= -fopenmp
 LDLIBS  ?= -lm
 
