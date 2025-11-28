@@ -294,11 +294,11 @@
 		\caption{Eficiência (CUDA - Shared)}\label{fig:eficiencia_cuda_optimized}
 	\end{figure}
 
-	As Figuras~\ref{fig:eficiencia_cuda} e~\ref{fig:eficiencia_cuda_optimized} mostram a eficiência das implementações com CUDA (básica e otimizada com memória compartilhada). É possível notar que o valor da eficiência excede 1, o que não deveria ser possível. Isso ocorre porque o cálculo da eficiência é baseado no número de threads (limitado a 1024 por bloco), enquanto a GPU possui milhares de núcleos, o que distorce a métrica tradicional de eficiência quando aplicada a arquiteturas massivamente paralelas como GPUs.
+	As Figuras~\ref{fig:eficiencia_cuda} e~\ref{fig:eficiencia_cuda_optimized} mostram a eficiência das implementações com CUDA (básica e otimizada com memória compartilhada). Onde $P = Tiles \times Tiles$ (número de threads por bloco). Observa-se que a eficiência diminui muito com o aumento do tamanho das matrizes, o que é esperado devido à sobrecarga de comunicação e sincronização entre threads. No entanto, a eficiência ainda é maior em comparação com as versões de CPU (OpenMP e MPI) para matrizes menores, destacando a vantagem do paralelismo massivo oferecido pelas GPUs.
 
 	\subsection{Testando os limites da GPU}
-	A versao basica era superior a versão shared na maioria dos testes, 
-	então decidimos testar a versao shared com tiles de 32x32 (1024 threads por bloco) e a versão básica para tentar maximizar o uso da memoria e ver se haveria uma melhora significativa.
+
+	A versao basica era superior a versão shared na maioria dos testes, então decidimos testar a versao shared com tiles de 32x32 (1024 threads por bloco) e a versão básica para tentar maximizar o uso da memoria e ver se haveria uma melhora significativa.
 
 	\begin{figure}[H]
 		\centering
