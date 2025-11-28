@@ -6,6 +6,7 @@ Repositório oficial do curso DEC107 - Processamento Paralelo, ministrado pelo P
 
 - `Projeto 1/`: Algoritmo DGEMM paralelo utilizando OpenMP.
 - `Projeto 2/`: Algoritmo DGEMM paralelo utilizando MPI.
+- `Projeto 3/`: Algoritmo DGEMM paralelo em GPU utilizando CUDA
 
 ## Autores
 
